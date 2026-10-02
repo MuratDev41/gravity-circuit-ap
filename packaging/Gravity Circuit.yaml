@@ -1,0 +1,39 @@
+# Gravity Circuit player settings for Archipelago.
+# Change "name" to your slot name, then adjust the options below.
+
+name: Player
+game: "Gravity Circuit (MuratDev's Implementation)"
+
+"Gravity Circuit (MuratDev's Implementation)":
+  # How many of the 8 Circuit bosses must be defeated before the Fortress opens (1-8).
+  bosses_required: 8
+
+  # How many random stage Access items you start with (1-8).
+  starting_stages: 1
+
+  # normal: the Junkyard health booster and the Highway burst booster expect the Air Jumper chip.
+  # hard: everything is in logic with the starting kit (hookshot tricks).
+  logic_difficulty: normal
+
+  # The big money crates (100-400 credits) are checks: 52 locations.
+  money_caches: true
+
+  # The small pickup boxes are checks: 335 locations.
+  small_money_caches: true
+
+  # Reliable data chips (NPCs, bosses, minibosses) are checks: 33 locations.
+  data_chips: true
+
+  # Enemy data chips are checks: 43 locations. They are random drops, so they can need repeat kills.
+  random_data_chips: false
+
+  # Every slot in Nega's burst shop (19) and the Nurse's chip shop (19) is a check.
+  # The shop shows what each slot sends and to whom, and progression items there get hinted.
+  shopsanity: true
+
+  # Percent chance that each filler item is a trap instead (0-100).
+  # Damage Trap: lose 8 HP (never lethal). Credit Leak Trap: lose 250 credits.
+  trap_chance: 0
+
+  # When you die, everyone with DeathLink dies, and the other way round.
+  death_link: false

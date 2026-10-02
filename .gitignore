@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.zip
+*.apworld
+.venv/
+.idea/
+.vscode/
