@@ -10,7 +10,7 @@ from .options import GravityCircuitOptions
 from .regions import create_regions
 from .rules import set_rules
 
-CLIENT_VERSION = "0.10.0"
+CLIENT_VERSION = "0.10.1"
 
 CLASSIFICATION = {
     "progression": ItemClassification.progression,
@@ -127,7 +127,11 @@ class GravityCircuitWorld(World):
 
     def create_item(self, name: str) -> GravityCircuitItem:
         data = ITEM_BY_NAME[name]
-        return GravityCircuitItem(name, CLASSIFICATION[data.classification], data.code, self.player)
+        classification = CLASSIFICATION[data.classification]
+        if data.kind == "token" and not self.options.shopsanity:
+            # Rescue tokens only matter to logic for the Nurse's shop checks.
+            classification = ItemClassification.filler
+        return GravityCircuitItem(name, classification, data.code, self.player)
 
     def create_event(self, name: str) -> GravityCircuitItem:
         return GravityCircuitItem(name, ItemClassification.progression, None, self.player)

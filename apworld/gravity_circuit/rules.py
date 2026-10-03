@@ -42,7 +42,8 @@ def set_rules(world: "GravityCircuitWorld") -> None:
         elif kind == "shopchip":
             need = chip_costs[location.gc_index]
             set_rule(location, lambda state, need=need:
-                     RESCUES_PER_STAGE * state.count_from_list(access_items, player) >= need)
+                     RESCUES_PER_STAGE * state.count_from_list(access_items, player)
+                     + state.count("Rescue Token", player) >= need)
 
         spec = DATA_CHIP_SPECS.get(location.name)
         if not spec:

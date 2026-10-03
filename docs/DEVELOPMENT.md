@@ -68,8 +68,8 @@ WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression 
   bosses plus Fortress 1 and 2, which under `fortress_access` means both Fortress Access items). Prim is always in
   the hub, because the ELEC rescue condition in `prim-bot-npc.lua` only shows the paint easel.
 - Enemy chips are logical in any stage containing that enemy; variants are resolved from map object parameters.
-- Nurse chips cost 64 tokens in total, one per rescue bot. Logic grants 8 tokens per enterable stage and places chips
-  cheapest first.
+- Nurse chips cost 64 tokens in total, one per rescue bot. Logic grants 8 tokens per enterable stage plus one per
+  Rescue Token item, and places chips cheapest first.
 - Seeds generated under a different game name are rejected by the client with `InvalidGame`.
 
 ## Tracker integration

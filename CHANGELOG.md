@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1
+- Rescue Token items are progression when shopsanity is on, and the Nurse's shop logic counts them on top of the
+  tokens from rescue bots. The PopTracker pack tracks them.
+
 ## 0.10.0
 - New option `fortress_access` (off by default): Fortress 1 and Fortress 2 are opened by "Fortress 1 Access" and
   "Fortress 2 Access" items, and only Fortress 3 needs `bosses_required` Circuit bosses. The stage select shows all

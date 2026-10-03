@@ -143,7 +143,7 @@ FILLER_AND_TRAPS = [
     ("Health Refill", 110, "heal", 8, "filler"),
     ("Full Health Refill", 111, "heal", 999, "filler"),
     ("Burst Refill", 112, "burstfill", 0, "filler"),
-    ("Rescue Token", 113, "token", 1, "filler"),
+    ("Rescue Token", 113, "token", 1, "progression"),
     ("Damage Trap", 120, "trapdamage", 8, "trap"),
     ("Credit Leak Trap", 121, "trapcredits", 250, "trap"),
 ]

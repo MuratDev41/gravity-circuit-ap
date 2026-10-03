@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "apworld" / "gravity_circuit"))
 import data  # noqa: E402
 import pt_maps  # noqa: E402
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 OUT = ROOT / "build" / "poptracker"
 shutil.rmtree(OUT, ignore_errors=True)
 STAGE_COLORS = {"OPTIC": "#d9534f", "PATCH": "#8a8f98", "COOLER": "#4aa3df", "ELEC": "#5cb85c",
@@ -112,6 +112,10 @@ for it in data.ITEMS:
         icon(img_dir / "burstup.png", "BU+", "#e0a030")
         add_item("burstup", it.name, "images/items/burstup.png", "consumable", it.code, max_quantity=4,
                  min_quantity=0)
+
+icon(img_dir / "rescue_token.png", "TOK", "#3fa66b", "circle")
+add_item("rescue_token", "Rescue Token", "images/items/rescue_token.png", "consumable",
+         data.ITEM_NAME_TO_ID["Rescue Token"], max_quantity=999, min_quantity=0)
 
 # Settings are filled in from slot data by autotracking and can be toggled manually.
 SETTINGS = [("opt_money_caches", "Money Caches", "$", True), ("opt_small_money_caches", "Small Caches", "$s", True),
@@ -341,7 +345,7 @@ def group(header, rows):
 item_panel = {"type": "array", "orientation": "vertical", "margin": "2,2", "content": [
     group("Stage Access", grid(grids["stages"], 4)),
     group("Circuit Bosses", grid(grids["bosses"], 4)),
-    group("Upgrades", [["health", "burstup", "chip_2"]]),
+    group("Upgrades", [["health", "burstup", "chip_2", "rescue_token"]]),
     group("Booster Chips", grid([c for c in grids["chips"] if c != "chip_2"], 6)),
     group("Burst Techniques", grid(grids["bursts"], 6)),
     group("Armor Paints", grid(grids["paints"], 5)),
@@ -416,9 +420,9 @@ function fortress(n)
   return bossCount() >= Tracker:ProviderCountForCode("opt_bosses_required")
 end
 
--- Nurse's shop: every enterable stage gives 8 rescue tokens
+-- Nurse's shop: every enterable stage gives 8 rescue tokens, plus Rescue Token items
 function tokens(n)
-  local count = 0
+  local count = Tracker:ProviderCountForCode("rescue_token")
   for _, k in ipairs(STAGE_KEYS) do
     if stage(k) then count = count + 8 end
   end
