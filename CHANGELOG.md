@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2
+- "Fortress 2 - Small Cache 11" and "Fortress 2 - Small Cache 12" now require the Air Jumper chip on Normal
+  logic.
+
 ## 0.9.1
 - "Highway - Money Cache 1" now requires the Air Jumper chip on Normal logic.
 

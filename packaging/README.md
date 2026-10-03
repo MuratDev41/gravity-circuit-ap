@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 0.9.1 · for Gravity Circuit 1.2.2 (Steam, Windows) · Archipelago 0.6.4 or newer
+Version 0.9.2 · for Gravity Circuit 1.2.2 (Steam, Windows) · Archipelago 0.6.4 or newer
 
 This zip contains:
 
