@@ -117,7 +117,7 @@ BURST_BOSS_STAGE = {
 CHIP_TOKENS = {2: 8, 3: 4, 4: 2, 5: 2, 6: 4, 7: 1, 8: 3, 9: 3, 10: 3, 11: 3, 12: 5, 13: 3, 14: 3, 15: 5, 16: 3,
                17: 2, 18: 4, 19: 3, 20: 3}
 
-AIR_JUMPER_LOCATIONS = ["Junkyard - Health Booster", "Highway - Burst Booster"]
+AIR_JUMPER_LOCATIONS = ["Junkyard - Health Booster", "Highway - Burst Booster", "Highway - Money Cache 1"]
 
 # (name, id offset, kind, game value, classification)
 FILLER_AND_TRAPS = [

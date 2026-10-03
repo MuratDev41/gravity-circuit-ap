@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.1
+- "Highway - Money Cache 1" now requires the Air Jumper chip on Normal logic.
+
 ## 0.9.0
 - Renamed the Archipelago game to "Gravity Circuit (MuratDev's Implementation)". Seeds generated under the old name
   must be regenerated.
