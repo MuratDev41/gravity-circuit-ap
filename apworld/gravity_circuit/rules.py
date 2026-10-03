@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING, Dict
 
 from worlds.generic.Rules import add_rule, set_rule
 
-from .data import (AIR_JUMPER_LOCATIONS, BURST_BOSS_STAGE, CHIP_TOKENS, DATA_CHIP_SPECS, FORTRESS, STAGE_BY_KEY,
-                   STAGES, access_item)
+from .data import (AIR_JUMPER_LOCATIONS, BURST_BOSS_STAGE, CHIP_TOKENS, DATA_CHIP_SPECS, FORTRESS, FORTRESS_ACCESS,
+                   STAGE_BY_KEY, STAGES, access_item, fortress_access_item)
 
 if TYPE_CHECKING:
     from . import GravityCircuitWorld
@@ -26,10 +26,13 @@ def set_rules(world: "GravityCircuitWorld") -> None:
     multiworld = world.multiworld
     access_items = [access_item(stage) for stage in STAGES]
     chip_costs = _cumulative_chip_costs()
+    fortress_items = [fortress_access_item(region) for region, _ in FORTRESS_ACCESS]
 
     if world.options.logic_difficulty == world.options.logic_difficulty.option_normal:
+        enabled = {location.name for location in multiworld.get_locations(player)}
         for name in AIR_JUMPER_LOCATIONS:
-            set_rule(multiworld.get_location(name, player), lambda state: state.has("Chip: Air Jumper", player))
+            if name in enabled:
+                set_rule(multiworld.get_location(name, player), lambda state: state.has("Chip: Air Jumper", player))
 
     for location in multiworld.get_locations(player):
         kind = getattr(location, "gc_kind", None)
@@ -50,7 +53,10 @@ def set_rules(world: "GravityCircuitWorld") -> None:
             set_rule(location, lambda state, item=item:
                      state.has(item, player) and state.has("Boss Defeated", player))
         elif mode == "late":
+            # The Researcher needs ten boss clears: all eight Circuit bosses plus Fortress 1 and 2.
             add_rule(location, lambda state: state.has("Boss Defeated", player, 8))
+            if world.options.fortress_access:
+                add_rule(location, lambda state: state.has_all(fortress_items, player))
         elif mode == "enemy" and "OPENING" not in spec[1]:
             items = [access_item(STAGE_BY_KEY[key]) for key in spec[1] if key in STAGE_BY_KEY]
             regions = [FORTRESS_REGION[key] for key in spec[1] if key in FORTRESS_REGION]

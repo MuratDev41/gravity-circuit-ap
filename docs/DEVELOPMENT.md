@@ -36,7 +36,7 @@ WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression 
 |---|---|
 | Stages | `MapData.OFFICIAL_MAPS`: OPTIC, PATCH, COOLER, ELEC, SHIFT, WAVE, BREAK, CIPHER, FINAL_1–3, OPENING, HUB |
 | Boss clears | `BOSS_CLEAR_FLAGS.kai[0..11]`, set by `missionCompleteScreen` |
-| Fortress | appears when `GAMEDATA.progressFlags.bossesCleared() >= 8` |
+| Fortress | appears when `GAMEDATA.progressFlags.bossesCleared() >= 8`; 9 adds Fortress 2 and 10 adds Fortress 3. The client reports a higher count to the stage select while the Fortress is open, and 10 under `fortress_access` |
 | Boosters | `GAMEDATA.increaseMaxHealth/Burst` set `HEALTH/BURST_BOOSTER_PICKUP_<STAGE>`; `countBoosterPickups` recomputes max stats |
 | Rescues | `GAMEDATA.addRescue` → `GAMEDATA.player.rescues[STAGE][1..8]` |
 | Palette chips | `armor.unlockByPickup(n)`: 1–8 stages, 9 hub, 10 NG+ only (excluded) |
@@ -64,7 +64,8 @@ WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression 
 - Pickup sections come from map object positions against the stage's checkpoints (`tools/gen_money_caches.py` uses
   the same split).
 - Data chip sources come from the NPC and boss scripts (`tools/gen_data_chips.py`). Rescue-gated hub NPCs also need
-  one boss clear; Kernel's chip needs the Fortress 1 boss; the Researcher needs ten bosses cleared. Prim is always in
+  one boss clear; Kernel's chip needs the Fortress 1 boss; the Researcher needs ten bosses cleared (all eight Circuit
+  bosses plus Fortress 1 and 2, which under `fortress_access` means both Fortress Access items). Prim is always in
   the hub, because the ELEC rescue condition in `prim-bot-npc.lua` only shows the paint easel.
 - Enemy chips are logical in any stage containing that enemy; variants are resolved from map object parameters.
 - Nurse chips cost 64 tokens in total, one per rescue bot. Logic grants 8 tokens per enterable stage and places chips

@@ -8,10 +8,16 @@ game: "Gravity Circuit (MuratDev's Implementation)"
   # How many of the 8 Circuit bosses must be defeated before the Fortress opens (1-8).
   bosses_required: 8
 
+  # true: Fortress 1 and Fortress 2 are opened by their own Access items, found in the multiworld.
+  # Only Fortress 3 (the final boss) still needs bosses_required Circuit bosses.
+  # Only the 8 Circuit stage bosses count toward bosses_required: clearing Fortress 1 or 2, or finding their
+  # Access items, does not. Fortress 1 and 2 are never needed to reach the goal.
+  fortress_access: false
+
   # How many random stage Access items you start with (1-8).
   starting_stages: 1
 
-  # normal: the Junkyard health booster and the Highway burst booster expect the Air Jumper chip.
+  # normal: a few hard-to-reach checks expect the Air Jumper chip.
   # hard: everything is in logic with the starting kit (hookshot tricks).
   logic_difficulty: normal
 

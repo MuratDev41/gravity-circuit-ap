@@ -6,7 +6,8 @@ stage select until you receive their Access item. Boss Burst Techniques and boos
 shop unlocks.
 
 ## What is the goal?
-Open the Fortress by defeating the required number of Circuit bosses, then beat the final boss in Fortress 3.
+Open the Fortress by defeating the required number of Circuit bosses, then beat the final boss in Fortress 3. With
+the Fortress Access Items option, Fortress 1 and 2 are opened by items instead, and only Fortress 3 needs the bosses.
 
 ## Which items can be in another player's world?
 Stage Access items, the 16 boss Burst Techniques, booster chips 2–20 (Air Jumper included), Health and Burst

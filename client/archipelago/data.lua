@@ -615,6 +615,8 @@ D.ITEMS = {
   [1195573254] = { kind = "access", gid = 6, name = "City Center Access" },
   [1195573255] = { kind = "access", gid = 7, name = "Ore Mines Access" },
   [1195573256] = { kind = "access", gid = 8, name = "Warehouse Access" },
+  [1195573257] = { kind = "access", gid = 9, name = "Fortress 1 Access" },
+  [1195573258] = { kind = "access", gid = 10, name = "Fortress 2 Access" },
   [1195573272] = { kind = "burst", gid = 4, name = "Burst: Gravity Freeze" },
   [1195573273] = { kind = "burst", gid = 5, name = "Burst: Surface Render" },
   [1195573275] = { kind = "burst", gid = 7, name = "Burst: Screen Interrupt" },

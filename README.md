@@ -10,7 +10,8 @@ modified: the client is loaded from the game's save folder.
 
 ## Features
 
-- **Stage access:** the stage select is locked per stage until its Access item is found.
+- **Stage access:** the stage select is locked per stage until its Access item is found. Optionally, Fortress 1 and 2
+  have Access items too, so only Fortress 3 is go mode.
 - **Regions:** each stage is split into checkpoint subregions that follow the game's checkpoint menu.
 - **Checks:** up to 593 in total.
   - Bosses, rescue bots, boosters and palette chips (92 base).

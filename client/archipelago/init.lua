@@ -4,7 +4,7 @@ local game = require("archipelago.game")
 local ui = require("archipelago.ui")
 local mapexport = require("archipelago.mapexport")
 
-local AP = { VERSION = "0.9.0" }
+local AP = { VERSION = "0.10.0" }
 
 local RECONNECT_DELAY = 15
 

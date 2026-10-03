@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 0.9.2 · for Gravity Circuit 1.2.2 (Steam, Windows) · Archipelago 0.6.4 or newer
+Version 0.10.0 · for Gravity Circuit 1.2.2 (Steam, Windows) · Archipelago 0.6.4 or newer
 
 This zip contains:
 
@@ -48,7 +48,9 @@ If Windows says the script is blocked, right-click the zip → *Properties* → 
 
 Useful to know:
 - **Locked stages:** they play an error sound on the stage select and show "LOCKED" until you receive that stage's **Access** item. You start with at least one.
-- **The Fortress:** opens after the number of Circuit bosses set in your YAML (`bosses_required`).
+- **The Fortress:** opens after the number of Circuit bosses set in your YAML (`bosses_required`). With
+  `fortress_access`, Fortress 1 and 2 are opened by their own Access items instead, and only Fortress 3 waits for the
+  bosses. Only the 8 Circuit stage bosses count toward `bosses_required`; Fortress 1 and 2 don't.
 - **Goal:** beat the final boss in Fortress 3.
 - **Shopsanity (on by default):** Nega's burst shop and the Nurse's chip shop sell checks instead of their usual items.
   - Highlight a slot to see what it sends and to whom, and whether it's progression, useful or a trap.

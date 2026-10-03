@@ -4,7 +4,8 @@ from Options import Choice, DeathLink, DefaultOnToggle, PerGameCommonOptions, Ra
 
 
 class BossesRequired(Range):
-    """How many of the eight Circuit bosses must be defeated before the Fortress opens on the stage select."""
+    """How many of the eight Circuit bosses must be defeated before the Fortress opens on the stage select.
+    Only the Circuit stage bosses count; Fortress bosses do not."""
     display_name = "Bosses Required"
     range_start = 1
     range_end = 8
@@ -17,6 +18,15 @@ class StartingStages(Range):
     range_start = 1
     range_end = 8
     default = 1
+
+
+class FortressAccess(Toggle):
+    """Fortress 1 and Fortress 2 are opened by their own Access items, found in the multiworld, instead of by
+    bosses. Fortress 3 (the final boss) still needs the number of Circuit bosses set by Bosses Required.
+
+    Only the 8 Circuit stage bosses count toward Bosses Required: clearing Fortress 1 or 2, or finding their Access
+    items, does not. Fortress 1 and 2 are never needed to reach the goal."""
+    display_name = "Fortress Access Items"
 
 
 class MoneyCaches(DefaultOnToggle):
@@ -74,6 +84,7 @@ class GravityCircuitOptions(PerGameCommonOptions):
     start_inventory_from_pool: StartInventoryPool
     bosses_required: BossesRequired
     starting_stages: StartingStages
+    fortress_access: FortressAccess
     money_caches: MoneyCaches
     small_money_caches: SmallMoneyCaches
     data_chips: DataChips

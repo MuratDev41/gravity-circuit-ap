@@ -106,6 +106,40 @@ function G.fortressOpen()
   return G.bossesDefeated() >= G.bossesRequired()
 end
 
+-- fortress_access: Fortress 1 and 2 are opened by Access items; only Fortress 3 waits for the bosses.
+function G.fortressItems()
+  local ap = apData()
+  if client.slotData and client.slotData.fortress_access ~= nil then return client.slotData.fortress_access == true end
+  return ap ~= nil and ap.fortressAccess == true
+end
+
+local FORTRESS_NAMES = { [9] = "Fortress 1", [10] = "Fortress 2", [11] = "Fortress 3" }
+
+-- Returns a short label and a full message when the stage select slot is locked, nil otherwise.
+local function slotLocked(slot)
+  if not slot then return nil end
+  if slot <= 8 then
+    if G.access[slot] then return nil end
+    local name = data.STAGES[slot].name
+    return name .. " - LOCKED", ("%s is locked: you need %s Access."):format(name, name)
+  end
+  if slot > 11 then return nil end
+  local name = FORTRESS_NAMES[slot]
+  if G.fortressItems() and slot < 11 then
+    if G.access[slot] then return nil end
+    return name .. " - LOCKED", ("%s is locked: you need %s Access."):format(name, name)
+  end
+  if G.fortressOpen() then return nil end
+  local progress = ("%d/%d bosses"):format(G.bossesDefeated(), G.bossesRequired())
+  return ("%s - LOCKED (%s)"):format(name, progress),
+    ("%s needs %d Circuit bosses defeated (%s)."):format(name, G.bossesRequired(), progress)
+end
+
+local function anyFortressOpen()
+  if G.fortressOpen() then return true end
+  return G.fortressItems() and (G.access[9] or G.access[10]) or false
+end
+
 function G.optionEnabled(kind)
   local key = OPTIONAL_KINDS[kind]
   if not key then return true end
@@ -260,6 +294,7 @@ function G.evaluateSave()
   if client.isConnected() then
     local ap = player.ap
     ap.bossesRequired = client.slotData.bosses_required
+    ap.fortressAccess = client.slotData.fortress_access == true
     ap.deathLink = client.slotData.death_link
     ap.caches = {}
     for _, key in pairs(OPTIONAL_KINDS) do ap.caches[key] = client.slotData[key] == true end
@@ -680,14 +715,7 @@ local function installHooks()
       if G.active and (input == keys.ACCEPT or input == keys.PAUSE)
         and not (self.checkpoint and self.checkpoint.active) and not self.tickingToDialogue
         and not GAMESTATE.dialogue and IsActiveMenu(self) then
-        local slot = self.state and self.state.selectedLevel
-        local blocked
-        if slot and slot <= 8 and not G.access[slot] then
-          blocked = ("%s is locked: you need %s Access."):format(data.STAGES[slot].name, data.STAGES[slot].name)
-        elseif slot and slot >= 9 and slot <= 11 and not G.fortressOpen() then
-          blocked = ("The Fortress needs %d Circuit bosses defeated (%d/%d)."):format(
-            G.bossesRequired(), G.bossesDefeated(), G.bossesRequired())
-        end
+        local _, blocked = slotLocked(self.state and self.state.selectedLevel)
         if blocked then
           if Audio and SFX and SFX.menu_error then Audio:playSound(SFX.menu_error) end
           G.notify(blocked, "warn")
@@ -697,15 +725,17 @@ local function installHooks()
       return originalInput(self, input, key)
     end
 
-    -- The stage select only shows the Fortress at 8 cleared bosses; report 8 while bosses_required is met.
+    -- The stage select shows one Fortress stage per cleared boss past 8. While the Fortress is open, report
+    -- enough clears for it; with fortress_access all three are shown and locked one by one.
     local originalEnter = states.ACTIVATING.enteredState
     states.ACTIVATING.enteredState = function(self, ...)
       G.levelSelect = self
       local progress = GAMEDATA.progressFlags
       local originalCount = progress.bossesCleared
-      if G.active and G.fortressOpen() then
+      if G.active and anyFortressOpen() then
         progress.bossesCleared = function()
           local count = originalCount()
+          if G.fortressItems() then return math.max(count, 10) end
           if count >= 8 then return count end
           local finals = 0
           for i = 9, 11 do
@@ -792,12 +822,7 @@ end
 function G.selectedStageLocked()
   local levelSelect = G.levelSelect
   if not (G.active and levelSelect and levelSelect.activated and levelSelect.state) then return nil end
-  local slot = levelSelect.state.selectedLevel
-  if slot and slot <= 8 and not G.access[slot] then return data.STAGES[slot].name .. " - LOCKED" end
-  if slot and slot >= 9 and slot <= 11 and not G.fortressOpen() then
-    return ("Fortress - LOCKED (%d/%d bosses)"):format(G.bossesDefeated(), G.bossesRequired())
-  end
-  return nil
+  return (slotLocked(levelSelect.state.selectedLevel))
 end
 
 function G.counts()

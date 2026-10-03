@@ -80,6 +80,12 @@ for i, s in enumerate(data.STAGES):
     add_item(f"boss_{key}", f"{s.boss} Defeated", f"images/items/boss_{key}.png")
     grids["stages"].append(f"access_{key}")
     grids["bosses"].append(f"boss_{key}")
+for number, (region, _) in enumerate(data.FORTRESS_ACCESS, 1):
+    code = f"access_final_{number}"
+    icon(img_dir / f"{code}.png", f"F{number}", "#8b1e3f")
+    add_item(code, data.fortress_access_item(region), f"images/items/{code}.png",
+             ap_id=data.ITEM_NAME_TO_ID[data.fortress_access_item(region)])
+    grids["stages"].append(code)
 
 grids["chips"], grids["bursts"], grids["paints"] = [], [], []
 for it in data.ITEMS:
@@ -111,6 +117,7 @@ for it in data.ITEMS:
 SETTINGS = [("opt_money_caches", "Money Caches", "$", True), ("opt_small_money_caches", "Small Caches", "$s", True),
             ("opt_data_chips", "Data Chips", "DC", True), ("opt_random_data_chips", "Enemy Data Chips", "EDC", False),
             ("opt_shopsanity", "Shopsanity", "SHP", True), ("opt_hard_logic", "Hard Logic", "HRD", False),
+            ("opt_fortress_access", "Fortress Access Items", "FA", False),
             ("opt_follow_map", "Follow the player's map", "MAP", True),
             ("opt_follow_pos", "Follow Kai: zoom in and keep the map centered on him", "KAI", True)]
 for code, name, label, default in SETTINGS:
@@ -166,6 +173,8 @@ for s in data.STAGES:
     stage_of_region[data.boss_region(s)] = s.key
 fortress_regions = {name for _, name, _, _ in data.FORTRESS}
 fortress_key_region = {key: name for key, name, _, _ in data.FORTRESS}
+fortress_number = {name: number for number, (_, name, _, _) in enumerate(data.FORTRESS, 1)}
+fortress_number.update({key: number for number, (key, _, _, _) in enumerate(data.FORTRESS, 1)})
 VIS = {"cache": "opt_money_caches", "smallcache": "opt_small_money_caches", "datachip": "opt_data_chips",
        "datachiprandom": "opt_random_data_chips", "shopburst": "opt_shopsanity", "shopchip": "opt_shopsanity"}
 
@@ -211,7 +220,7 @@ for loc in data.LOCATIONS:
         if pin in stage_of_region:
             entry["access_rules"] = [f"$stage|{stage_of_region[pin].lower()}"]
         elif pin in fortress_regions:
-            entry["access_rules"] = ["$fortress"]
+            entry["access_rules"] = [f"$fortress|{fortress_number[pin]}"]
         pt_locations[pin] = entry
     sec = {"name": section_name(loc, pin)}
     rules = None
@@ -226,11 +235,11 @@ for loc in data.LOCATIONS:
         if spec[0] == "npc":
             rules = [f"$npc|{spec[1].lower()}"]
         elif spec[0] == "late":
-            rules = ["$fortress,$bosses|8"]
+            rules = ["$fortress|1,$fortress|2,$fortress|3,$bosses|8"]
         elif spec[0] == "enemy" and "OPENING" not in spec[1]:
             rules = []
             for k in spec[1]:
-                rules.append("$fortress" if k in fortress_key_region else f"$stage|{k.lower()}")
+                rules.append(f"$fortress|{fortress_number[k]}" if k in fortress_key_region else f"$stage|{k.lower()}")
             rules = sorted(set(rules))
     if rules:
         sec["access_rules"] = rules
@@ -380,7 +389,7 @@ function stage(key)
   return has("access_" .. key)
 end
 
--- Junkyard health booster / Highway burst booster under normal logic
+-- checks that expect the Air Jumper chip under normal logic
 function airjumper()
   return has("opt_hard_logic") or has("chip_2")
 end
@@ -397,8 +406,13 @@ function bosses(n)
   return bossCount() >= tonumber(n)
 end
 
--- the Fortress opens after the required number of Circuit bosses
-function fortress()
+-- Fortress stage n: opens after the required number of Circuit bosses, or with Fortress Access Items,
+-- Fortress 1 and 2 open with their own Access item
+function fortress(n)
+  n = tonumber(n) or 1
+  if has("opt_fortress_access") and n < 3 then
+    return has("access_final_" .. n)
+  end
   return bossCount() >= Tracker:ProviderCountForCode("opt_bosses_required")
 end
 
@@ -450,6 +464,7 @@ local SETTING_KEYS = {
   opt_data_chips = "data_chips",
   opt_random_data_chips = "random_data_chips",
   opt_shopsanity = "shopsanity",
+  opt_fortress_access = "fortress_access",
 }
 
 local function resetItem(code)

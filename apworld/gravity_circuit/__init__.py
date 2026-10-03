@@ -3,14 +3,14 @@ from typing import Any, Dict, List
 from BaseClasses import Item, ItemClassification, Location, Tutorial
 from worlds.AutoWorld import WebWorld, World
 
-from .data import (FILLER_WEIGHTS, FORTRESS, GAME_NAME, ITEM_BY_NAME, ITEM_GROUPS, ITEM_NAME_TO_ID, ITEMS,
-                   LOCATION_GROUPS, LOCATION_NAME_TO_ID, LOCATIONS, SHOP_BURSTS, STAGES, TRAP_WEIGHTS, access_item,
-                   boss_region)
+from .data import (FILLER_WEIGHTS, FORTRESS, FORTRESS_ACCESS, GAME_NAME, ITEM_BY_NAME, ITEM_GROUPS, ITEM_NAME_TO_ID,
+                   ITEMS, LOCATION_GROUPS, LOCATION_NAME_TO_ID, LOCATIONS, SHOP_BURSTS, STAGES, TRAP_WEIGHTS,
+                   access_item, boss_region, fortress_access_item)
 from .options import GravityCircuitOptions
 from .regions import create_regions
 from .rules import set_rules
 
-CLIENT_VERSION = "0.9.0"
+CLIENT_VERSION = "0.10.0"
 
 CLASSIFICATION = {
     "progression": ItemClassification.progression,
@@ -29,8 +29,13 @@ OPTIONAL_LOCATION_KINDS = {
     "shopchip": "shopsanity",
 }
 
-SLOT_DATA_OPTIONS = ("bosses_required", "logic_difficulty", "death_link", "money_caches", "small_money_caches",
-                     "data_chips", "random_data_chips", "shopsanity")
+SLOT_DATA_OPTIONS = ("bosses_required", "fortress_access", "logic_difficulty", "death_link", "money_caches",
+                     "small_money_caches", "data_chips", "random_data_chips", "shopsanity")
+BOOL_SLOT_DATA = ("fortress_access", "death_link", "money_caches", "small_money_caches", "data_chips",
+                  "random_data_chips", "shopsanity")
+
+
+FORTRESS_ITEMS = {fortress_access_item(region) for region, _ in FORTRESS_ACCESS}
 
 
 class GravityCircuitItem(Item):
@@ -134,6 +139,8 @@ class GravityCircuitWorld(World):
                 continue
             if data.kind == "burst" and data.game_id in SHOP_BURSTS and not self.options.shopsanity:
                 continue
+            if data.name in FORTRESS_ITEMS and not self.options.fortress_access:
+                continue
             pool += [self.create_item(data.name) for _ in range(data.count)]
 
         unfilled = len(self.multiworld.get_unfilled_locations(self.player))
@@ -149,8 +156,7 @@ class GravityCircuitWorld(World):
 
     def fill_slot_data(self) -> Dict[str, Any]:
         slot_data: Dict[str, Any] = {key: getattr(self.options, key).value for key in SLOT_DATA_OPTIONS}
-        for key in ("death_link", "money_caches", "small_money_caches", "data_chips", "random_data_chips",
-                    "shopsanity"):
+        for key in BOOL_SLOT_DATA:
             slot_data[key] = bool(slot_data[key])
         slot_data["mod_version"] = CLIENT_VERSION
         return slot_data

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+- New option `fortress_access` (off by default): Fortress 1 and Fortress 2 are opened by "Fortress 1 Access" and
+  "Fortress 2 Access" items, and only Fortress 3 needs `bosses_required` Circuit bosses. The stage select shows all
+  three Fortress stages and locks each one separately.
+- The PopTracker pack tracks the new items and setting.
+- Fixed generation failing when `money_caches` or `small_money_caches` is off (since 0.9.1).
+
 ## 0.9.2
 - "Fortress 2 - Small Cache 11" and "Fortress 2 - Small Cache 12" now require the Air Jumper chip on Normal
   logic.

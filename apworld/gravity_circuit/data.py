@@ -63,6 +63,14 @@ def access_item(stage: Stage) -> str:
     return f"{stage.name} Access"
 
 
+def fortress_access_item(region: str) -> str:
+    return f"{region} Access"
+
+
+# Fortress stages that get their own Access item under the fortress_access option: (region, stage select slot)
+FORTRESS_ACCESS = [(name, flag) for _, name, _, flag in FORTRESS[:2]]
+
+
 class LocData(NamedTuple):
     name: str
     code: int
@@ -151,6 +159,8 @@ def _build_items() -> List[ItemData]:
     items: List[ItemData] = []
     for i, stage in enumerate(STAGES):
         items.append(ItemData(access_item(stage), BASE_ID + 1 + i, "access", i + 1, "progression"))
+    for region, slot in FORTRESS_ACCESS:
+        items.append(ItemData(fortress_access_item(region), BASE_ID + slot, "access", slot, "progression"))
     for bid, name in {**BURSTS, **SHOP_BURSTS}.items():
         items.append(ItemData(f"Burst: {name}", BASE_ID + 20 + bid, "burst", bid, "useful"))
     for cid, name in CHIPS.items():

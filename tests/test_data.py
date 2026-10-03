@@ -20,7 +20,7 @@ class DataTests(unittest.TestCase):
             self.assertEqual(len(names), len(set(names)))
 
     def test_totals(self):
-        self.assertEqual(len(data.ITEMS), 68)
+        self.assertEqual(len(data.ITEMS), 70)
         self.assertEqual(len(data.LOCATIONS), 593)
         kinds = {}
         for loc in data.LOCATIONS:
