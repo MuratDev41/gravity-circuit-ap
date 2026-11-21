@@ -491,7 +491,7 @@ local function applyOneInstant(kind, kai)
     end
   end
   ap.instant[kind] = applied + 1
-  G.notify(item.name, kind == "trapdamage" and "death" or "item")
+  if kind == "trapdamage" then G.notify(item.name, "death") end
 end
 
 local function processInstant()
