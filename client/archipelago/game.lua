@@ -679,7 +679,6 @@ local function installHooks()
           local loc = stage and self.ID and cacheLoc[stage .. "|" .. tostring(self.ID)]
           if loc and G.optionEnabled(loc.kind) and not G.isDone(loc.id) then
             markFound(loc.id)
-            G.notify("Cache: " .. loc.name, "item")
           end
         end
         return original(self, ...)
