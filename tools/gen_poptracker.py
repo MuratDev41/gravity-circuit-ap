@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "apworld" / "gravity_circuit"))
 import data  # noqa: E402
 import pt_maps  # noqa: E402
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 OUT = ROOT / "build" / "poptracker"
 shutil.rmtree(OUT, ignore_errors=True)
 STAGE_COLORS = {"OPTIC": "#d9534f", "PATCH": "#8a8f98", "COOLER": "#4aa3df", "ELEC": "#5cb85c",

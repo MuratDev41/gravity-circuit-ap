@@ -14,7 +14,7 @@
   to cut down on hitches.
 - Linux / Steam Deck (Proton): falls back to LuaSocket (ws:// only) when WinHTTP websockets are unavailable.
   `install.sh` installs the mod into the Proton prefix.
-- PopTracker: hub NPC data chips show as Inspect until the rescue that brings the NPC to HQ is checked.
+- PopTracker (pack 0.7.0): hub NPC data chips show as Inspect until the rescue that brings the NPC to HQ is checked.
 
 ## 0.10.1
 - Rescue Token items are progression when shopsanity is on, and the Nurse's shop logic counts them on top of the
