@@ -7,6 +7,7 @@
   the Archipelago text client. The connection line moved to the top; it hides a few seconds after connecting and
   shows again when disconnected, paused or with F9 open.
 - Shopsanity: the shop's description box shows what the selected slot sends and to whom.
+- Money cache pickups and applied refills no longer print a message.
 - Fixed checkpoint refills not filling the new segment after receiving a Burst Booster.
 - Clearer connection errors. Pasted addresses are cleaned up, and a bad address or a refused connection no
   longer retries forever.
