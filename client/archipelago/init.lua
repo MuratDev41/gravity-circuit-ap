@@ -4,7 +4,7 @@ local game = require("archipelago.game")
 local ui = require("archipelago.ui")
 local mapexport = require("archipelago.mapexport")
 
-local AP = { VERSION = "0.10.1" }
+local AP = { VERSION = "0.11.0" }
 
 local RECONNECT_DELAY = 15
 
@@ -20,6 +20,7 @@ local function connect()
   end
   wantConnected = true
   lastAttempt = love.timer.getTime()
+  client.transport = ui.transport
   client.connect(server, slot, ui.get("password"))
 end
 ui.onConnect = connect
@@ -29,7 +30,7 @@ game.notify = ui.push
 client.handlers.status = function(status, msg)
   if status == "disconnected" then
     ui.push(msg, "warn")
-    if msg:find("refused", 1, true) or msg:find("Invalid server", 1, true) then wantConnected = false end
+    if not client.retry then wantConnected = false end
   elseif status == "connected" then
     ui.push(msg, "item")
   end
@@ -41,17 +42,18 @@ client.handlers.scouted = function()
   if shop and shop.activated and game.active and game.shopsanity() then game.hintShop(shop.type) end
 end
 client.handlers.deathlink = function(source, cause) game.receiveDeath(source, cause) end
-client.handlers.print = function(text, msg)
+client.handlers.print = function(text, msg, colored)
+  local shown = colored or text
   local t = msg.type
   if t == "ItemSend" or t == "ItemCheat" then
     -- received items are announced by the game layer; only show what we sent to others
     local item = msg.item or {}
-    if item.player == client.slot and msg.receiving ~= client.slot then ui.push(text, "item") end
+    if item.player == client.slot and msg.receiving ~= client.slot then ui.push(shown, "item") end
   elseif t == "Hint" then
-    if msg.receiving == client.slot or (msg.item and msg.item.player == client.slot) then ui.push(text, "chat") end
+    if msg.receiving == client.slot or (msg.item and msg.item.player == client.slot) then ui.push(shown, "chat") end
   elseif t == "Chat" or t == "ServerChat" or t == "Goal" or t == "Countdown" or t == "Release" or t == "Collect"
     or t == nil then
-    ui.push(text, "chat")
+    ui.push(shown, "chat")
   end
 end
 
@@ -66,7 +68,9 @@ function AP.tick()
   client.update()
   game.update()
   mapexport.update()
-  if wantConnected and client.status == "disconnected" and love.timer.getTime() - lastAttempt > RECONNECT_DELAY then
+  log.update()
+  if wantConnected and client.retry and client.status == "disconnected"
+    and love.timer.getTime() - lastAttempt > RECONNECT_DELAY then
     connect()
   end
 end
@@ -82,6 +86,7 @@ local function overlayState()
     warning = game.saveLoaded and game.warning or nil,
     locked = game.selectedStageLocked(),
     shop = game.shopInfo(),
+    paused = game.isPaused(),
   }
 end
 
@@ -123,6 +128,7 @@ end
 
 wrappers.quit = function(...)
   pcall(client.disconnect, true)
+  pcall(log.flush)
   if real.quit then return real.quit(...) end
 end
 

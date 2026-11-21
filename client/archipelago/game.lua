@@ -66,12 +66,13 @@ local function currentStage()
   return nil
 end
 
-local function itemClass(flags)
-  flags = flags or 0
-  if flags % 2 == 1 then return "progression" end
-  if math.floor(flags / 2) % 2 == 1 then return "useful" end
-  if math.floor(flags / 4) % 2 == 1 then return "trap" end
-  return "filler"
+local itemClass = client.itemClass
+
+local function itemAndPlayer(prefix, id, owner, flags, joiner, player)
+  local itemColor, itemName = client.itemPiece(id, owner, flags)
+  local who = player == client.slot and "you" or client.playerName(player)
+  return { client.COLOR.text, prefix, itemColor, itemName, client.COLOR.text, joiner,
+           client.playerColor(player), who }
 end
 
 function G.isDone(id)
@@ -200,8 +201,7 @@ function G.shopBuy(kind, id)
   G.pendingShop = { burst = kind == "bursts", id = id }
   local item = client.scouted[loc.id]
   if item then
-    local who = item.player == client.slot and "you" or client.playerName(item.player)
-    G.notify(("Bought %s for %s"):format(client.itemName(item.item, item.player), who), "item")
+    G.notify(itemAndPlayer("Bought ", item.item, item.player, item.flags, " for ", item.player), "item")
   else
     G.notify("Bought " .. loc.name, "item")
   end
@@ -234,29 +234,79 @@ function G.hintShop(kind)
   end
 end
 
-function G.shopInfo()
-  local shop = G.shop
-  if not (G.active and G.shopsanity() and shop and shop.activated and G.shopSeen) then return nil end
-  if love.timer.getTime() - G.shopSeen > 0.2 then return nil end
+local CLASS_LABEL = {
+  progression = "Progression item", useful = "Useful item", trap = "Trap!", filler = "Filler item",
+}
+
+local function bossForBurst(id)
+  local stageKey = data.BURST_BOSS_STAGE[id]
+  for _, stage in ipairs(data.STAGES) do
+    if stage.key == stageKey then return stage.boss end
+  end
+  return "its boss"
+end
+
+local function shorten(text, max)
+  if #text <= max then return text end
+  return text:sub(1, max - 3) .. "..."
+end
+
+-- Title and description for the selected shopsanity slot, nil if it isn't a check.
+local function slotDetails(shop)
   local item = shop.inventory and shop.slot and shop.inventory[shop.slot]
   local loc = item and item.id and shopLoc[shop.type] and shopLoc[shop.type][item.id]
   if not loc then return nil end
-  if G.isDone(loc.id) then return { text = "Already bought", kind = "done" } end
-  if shop.type == "bursts" and not item.unlocked then
-    local stageKey = data.BURST_BOSS_STAGE[item.id]
-    for _, stage in ipairs(data.STAGES) do
-      if stage.key == stageKey then return { text = "Not for sale yet: defeat " .. stage.boss, kind = "done" } end
-    end
-  end
   local scouted = client.scouted[loc.id]
-  if not scouted then
-    return { text = client.isConnected() and "Scouting..." or "Connect to see what this slot holds", kind = "done" }
+  local name, who
+  if scouted then
+    name = client.itemName(scouted.item, scouted.player)
+    who = scouted.player == client.slot and "you" or client.playerName(scouted.player)
   end
-  local who = scouted.player == client.slot and "you" or client.playerName(scouted.player)
-  return {
-    text = ("Sends %s to %s"):format(client.itemName(scouted.item, scouted.player), who),
-    kind = itemClass(scouted.flags),
-  }
+  if G.isDone(loc.id) then
+    return { title = "Already bought", kind = "done",
+             text = name and ("This slot sent %s to %s."):format(name, who) or "This check is done." }
+  end
+  if shop.type == "bursts" and not item.unlocked then
+    local text = ("Defeat %s to put this slot on sale."):format(bossForBurst(item.id))
+    if name then text = text .. ("{n}It holds %s for %s."):format(name, who) end
+    return { title = "Not for sale yet", text = text, kind = "done" }
+  end
+  if not scouted then
+    return { title = "Archipelago", kind = "done",
+             text = client.isConnected() and "Looking up what this slot holds..."
+               or "Connect (F9) to see what this slot holds." }
+  end
+  local kind = itemClass(scouted.flags)
+  return { title = shorten(name, 18), kind = kind, banner = ("Sends %s to %s"):format(name, who),
+           text = ("Sends %s to %s.{n}%s"):format(name, who, CLASS_LABEL[kind]) }
+end
+
+-- Overlay banner, only used if the shop description hook isn't installed.
+function G.shopInfo()
+  if G.shopDescHooked then return nil end
+  local shop = G.shop
+  if not (G.active and G.shopsanity() and shop and shop.activated and G.shopSeen) then return nil end
+  if love.timer.getTime() - G.shopSeen > 0.2 then return nil end
+  local details = slotDetails(shop)
+  if not details then return nil end
+  return { text = details.banner or (details.title .. ": " .. details.text:gsub("{n}", " ")), kind = details.kind }
+end
+
+-- Text palettes in the game's format for the item classes.
+local AP_RGB = {
+  progression = { 0.69, 0.6, 0.94 }, useful = { 0.43, 0.55, 0.91 }, trap = { 0.98, 0.5, 0.45 },
+  filler = { 0, 0.93, 0.93 },
+}
+local function classPalette(kind)
+  local rgb = AP_RGB[kind]
+  local base = Colors and Colors.Text and Colors.Text.text
+  if not (rgb and base) then return nil end
+  local key = "ap_" .. kind
+  if not Colors.Text[key] then
+    local function mix(t, f) return { rgb[1] + (t - rgb[1]) * f, rgb[2] + (t - rgb[2]) * f, rgb[3] + (t - rgb[3]) * f } end
+    Colors.Text[key] = { name = key, [0] = base[0], [1] = mix(1, 0.55), [2] = rgb, [3] = mix(0, 0.45), [4] = base[4] }
+  end
+  return Colors.Text[key]
 end
 
 local function isFreshSave(player)
@@ -317,8 +367,7 @@ function G.applyItems(announce)
     if announce ~= false then
       for i = known + 1, #client.items do
         local item = client.items[i]
-        local from = item.player == client.slot and "you" or client.playerName(item.player)
-        G.notify(("Received %s from %s"):format(data.itemNames[item.item] or ("item " .. item.item), from), "item")
+        G.notify(itemAndPlayer("Received ", item.item, client.slot, item.flags, " from ", item.player), "item")
       end
     end
     ap.items = list
@@ -361,8 +410,13 @@ function G.applyItems(announce)
 
   for i = 1, math.min(health, #HEALTH_FLAGS) do SetFlag(HEALTH_FLAGS[i]) end
   for i = 1, math.min(burstUps, #BURST_FLAGS) do SetFlag(BURST_FLAGS[i]) end
+  local maxBurstBefore = player.maxBurst or 0
   GAMEDATA.countBoosterPickups()
-  if GlobalObserver then GlobalObserver:none("PLAYER_HUD_MAX_BURST_COUNT_UPDATED") end
+  if GlobalObserver then
+    GlobalObserver:none("PLAYER_HUD_MAX_BURST_COUNT_UPDATED")
+    -- the HUD ignores refills while it thinks the gauge is full; a booster pickup clears that flag
+    if (player.maxBurst or 0) > maxBurstBefore then GlobalObserver:none("BURST_ENERGY_COLLECTED", 0, true) end
+  end
 
   if not ap.creditsTotal then ap.creditsTotal = (ap.credits or 0) * LEGACY_CREDITS_PER_ITEM end
   if credits > ap.creditsTotal then
@@ -703,6 +757,40 @@ local function installHooks()
     return true
   end)
 
+  try("shopDescription", function()
+    -- under shopsanity the description box shows what the slot sends
+    local ShopScreen = UI and UI.objects and UI.objects.ShopScreen
+    if not (ShopScreen and ShopScreen.drawDescription and StringHelper and StringHelper.get and Text and Text.write) then
+      return false
+    end
+    local original = ShopScreen.drawDescription
+    ShopScreen.drawDescription = function(self, ...)
+      local details = G.active and G.shopsanity() and self.description and slotDetails(self)
+      if not details then return original(self, ...) end
+      local desc = self.description
+      local titleFile, titleId = desc.file, desc.title
+      local textFile, textId = desc.tFile or "equipStrings", desc.text
+      local rawGet, rawWrite = rawget(StringHelper, "get"), rawget(Text, "write")
+      local getString, write = StringHelper.get, Text.write
+      local titleColor = classPalette(details.kind)
+      StringHelper.get = function(helper, file, id, ...)
+        if file == titleFile and id == titleId then return details.title, true end
+        if file == textFile and id == textId then return details.text, true end
+        return getString(helper, file, id, ...)
+      end
+      Text.write = function(text, str, x, y, fnt, ui, wrap, color, ...)
+        if str == details.title and titleColor then color = titleColor end
+        return write(text, str, x, y, fnt, ui, wrap, color, ...)
+      end
+      local ok, err = pcall(original, self, ...)
+      rawset(StringHelper, "get", rawGet)
+      rawset(Text, "write", rawWrite)
+      if not ok then error(err, 0) end
+    end
+    G.shopDescHooked = true
+    return true
+  end)
+
   try("levelSelect", function()
     local LevelSelect = UI and UI.objects and UI.objects.LevelSelectScreen
     local states = LevelSelect and LevelSelect.static and LevelSelect.static.states
@@ -825,8 +913,11 @@ function G.selectedStageLocked()
   return (slotLocked(levelSelect.state.selectedLevel))
 end
 
+local countCache = { at = -1, done = 0, total = 0 }
 function G.counts()
   if not apData() then return 0, #data.LOCATIONS end
+  local now = love.timer.getTime()
+  if now - countCache.at < 0.5 then return countCache.done, countCache.total end
   local done, total = 0, 0
   for _, loc in ipairs(data.LOCATIONS) do
     if locationEnabled(loc) then
@@ -834,7 +925,13 @@ function G.counts()
       if G.isDone(loc.id) then done = done + 1 end
     end
   end
+  countCache.at, countCache.done, countCache.total = now, done, total
   return done, total
+end
+
+function G.isPaused()
+  local pause = GAMESTATE and GAMESTATE._pauseScreenObject
+  return pause ~= nil and pause.active == true
 end
 
 return G

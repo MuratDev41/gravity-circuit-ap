@@ -206,7 +206,7 @@ def _data_chip_locations() -> List[LocData]:
             region = boss_region(STAGE_BY_KEY[spec[1]])
         elif mode == "section":
             region = section_region(STAGE_BY_KEY[spec[1]], spec[2])
-        elif mode in ("region", "late"):
+        elif mode in ("region", "late", "rescues"):
             region = spec[1]
         else:
             region = "Hub"

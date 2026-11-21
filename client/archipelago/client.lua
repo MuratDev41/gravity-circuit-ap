@@ -24,7 +24,36 @@ local C = {
   tags = {},
   dp = {},        -- [game] = { items = {[id] = name}, locations = {[id] = name} }
   handlers = {},
+  transport = "auto", -- "auto", "winhttp" or "socket" (connection.json)
+  retry = true,       -- false after a failure reconnecting can't fix (bad address, refused by the server)
 }
+
+-- Archipelago text client colours
+local COLOR = {
+  self = { 0.93, 0, 0.93 },          -- your own name (magenta)
+  player = { 0.98, 0.98, 0.82 },     -- other players (light yellow)
+  progression = { 0.69, 0.6, 0.94 }, -- plum
+  useful = { 0.43, 0.55, 0.91 },     -- slate blue
+  trap = { 0.98, 0.5, 0.45 },        -- salmon
+  filler = { 0, 0.93, 0.93 },        -- cyan
+  location = { 0, 1, 0.5 },          -- spring green
+  entrance = { 0.39, 0.58, 0.93 },   -- cornflower blue
+  text = { 1, 1, 1 },
+}
+C.COLOR = COLOR
+local NAMED_COLORS = {
+  red = { 0.93, 0.2, 0.2 }, green = { 0, 1, 0.5 }, yellow = { 0.98, 0.98, 0.82 }, blue = { 0.39, 0.58, 0.93 },
+  magenta = { 0.93, 0, 0.93 }, cyan = { 0, 0.93, 0.93 }, white = { 1, 1, 1 }, black = { 0.3, 0.3, 0.3 },
+  plum = COLOR.progression, slateblue = COLOR.useful, salmon = COLOR.trap,
+}
+
+function C.itemClass(flags)
+  flags = flags or 0
+  if flags % 2 == 1 then return "progression" end
+  if math.floor(flags / 2) % 2 == 1 then return "useful" end
+  if math.floor(flags / 4) % 2 == 1 then return "trap" end
+  return "filler"
+end
 
 local socket = nil
 local attempts = {}
@@ -61,27 +90,89 @@ local function getUuid()
   return uuid
 end
 
+local failures = {}
+
 local function startAttempt()
   local attempt = table.remove(attempts, 1)
   if not attempt then return false end
-  socket = WS.new(attempt.host, attempt.port, attempt.secure)
+  socket = WS.new(attempt.host, attempt.port, attempt.secure, attempt.transport)
   setStatus("connecting", ("Connecting to %s://%s:%d ..."):format(
     attempt.secure and "wss" or "ws", attempt.host, attempt.port))
   return true
 end
 
--- Without a scheme, wss is tried first and ws second, like the official clients.
+-- Message for the player once every attempt failed; the most specific reason wins.
+local REASON_ORDER = { "notap", "notfound", "refused", "timeout", "badaddress", "reset", "tls", "nosecure",
+                       "nowinhttp", "other" }
+local function failureText(host, port)
+  local best, bestRank = nil, math.huge
+  for _, f in ipairs(failures) do
+    for rank, reason in ipairs(REASON_ORDER) do
+      if f.reason == reason and rank < bestRank then best, bestRank = f, rank end
+    end
+  end
+  best = best or failures[#failures] or { reason = "other" }
+  local r = best.reason
+  if r == "notfound" then
+    return ('Could not find the server "%s". Check the address for typos.'):format(host)
+  elseif r == "refused" then
+    local hint = host:find("archipelago.gg", 1, true)
+      and " archipelago.gg rooms get a new port when they wake up: reload the room page and copy the address again."
+      or " If the server runs on someone's PC, they need to forward that port, and you need their public IP."
+    return ("Nothing is accepting connections at %s:%d. Check the port.%s"):format(host, port, hint)
+  elseif r == "timeout" then
+    return ("%s:%d did not answer in time. Check the address, and that the host's firewall and port forwarding "
+      .. "let you in."):format(host, port)
+  elseif r == "badaddress" then
+    return ('"%s:%d" is not a valid server address. Use host:port, for example archipelago.gg:38281.'):format(host, port)
+  elseif r == "notap" then
+    return ("%s:%d answered, but it is not an Archipelago server%s. Check the port."):format(
+      host, port, best.status and (" (HTTP " .. tostring(best.status) .. ")") or "")
+  elseif r == "reset" then
+    return ("%s:%d closed the connection right away. Check the port, or try again in a moment."):format(host, port)
+  elseif r == "tls" then
+    return ("The secure (wss://) connection to %s:%d failed. Try the address with ws:// instead."):format(host, port)
+  elseif r == "nosecure" then
+    return "wss:// is not available here (Linux/Proton has no WinHTTP). Enter the address without wss://."
+  end
+  return ("Could not connect to %s:%d (%s)."):format(host, port, tostring(best.msg))
+end
+
+local REFUSED_TEXT = {
+  InvalidSlot = 'There is no slot named "%s" in this room. Slot names are case-sensitive.',
+  InvalidGame = [[Slot "%s" is not a Gravity Circuit (MuratDev's Implementation) slot, or the seed was made ]]
+    .. "with an older apworld. Check the slot name, or regenerate with this version.",
+  InvalidPassword = "Wrong password, or this room needs one (F9 to enter it).",
+  IncompatibleVersion = "The server is too old or too new for this client. Update the mod or the server.",
+  InvalidItemsHandling = "The server rejected this client's settings. Update the mod.",
+  SlotAlreadyTaken = 'Slot "%s" is already connected from somewhere else.',
+}
+
+-- Without a scheme, wss is tried first and ws second, like the official clients. LuaSocket (ws:// only) is
+-- the last fallback, and the only option where WinHTTP is missing.
 function C.connect(server, slotName, password)
   C.disconnect(true)
+  slotName = tostring(slotName or ""):gsub("^%s+", ""):gsub("%s+$", "")
   C.server, C.slotName, C.password = server, slotName, password or ""
+  C.retry = true
   local scheme, host, port = WS.parseUrl(server)
-  if not host or host == "" or not port then
-    setStatus("disconnected", "Invalid server address: " .. tostring(server))
+  if not port then
+    C.retry = false
+    setStatus("disconnected", host or "Invalid server address")
     return
   end
-  attempts = {}
-  if scheme == "wss" or not scheme then attempts[#attempts + 1] = { host = host, port = port, secure = true } end
-  if scheme == "ws" or not scheme then attempts[#attempts + 1] = { host = host, port = port, secure = false } end
+  attempts, failures = {}, {}
+  local useWin = C.transport ~= "socket" and WS.hasWinHTTP()
+  local useSocket = C.transport ~= "winhttp" or not useWin
+  if useWin then
+    if scheme ~= "ws" then attempts[#attempts + 1] = { host = host, port = port, secure = true, transport = "winhttp" } end
+    if scheme ~= "wss" then attempts[#attempts + 1] = { host = host, port = port, secure = false, transport = "winhttp" } end
+  end
+  if useSocket then
+    attempts[#attempts + 1] = { host = host, port = port, secure = scheme == "wss", transport = "socket" }
+    if scheme == "wss" and useWin then attempts[#attempts] = nil end
+  end
+  C.target = { host = host, port = port }
   handshakeDone = false
   goalSent = false
   startAttempt()
@@ -165,41 +256,106 @@ function C.setData(key, value)
                    operations = json.array({ { operation = "replace", value = value } }) } })
 end
 
+function C.playerColor(slot)
+  return slot == C.slot and COLOR.self or COLOR.player
+end
+
+function C.itemPiece(id, slot, flags)
+  return COLOR[C.itemClass(flags)] or COLOR.filler, C.itemName(id, slot)
+end
+
+-- Returns plain text and LÖVE coloredtext.
 local function renderPrintJSON(parts)
-  local out = {}
+  local plain, colored = {}, {}
   for _, part in ipairs(parts or {}) do
-    local text = part.text or ""
+    local text, color = part.text or "", COLOR.text
     if part.type == "player_id" then
-      text = C.playerName(tonumber(text))
+      local slot = tonumber(text)
+      text, color = C.playerName(slot), C.playerColor(slot)
+    elseif part.type == "player_name" then
+      color = COLOR.player
     elseif part.type == "item_id" then
-      text = C.itemName(tonumber(text), part.player)
+      color, text = C.itemPiece(tonumber(text), part.player, part.flags)
+    elseif part.type == "item_name" then
+      color = COLOR[C.itemClass(part.flags)] or COLOR.filler
     elseif part.type == "location_id" then
-      text = C.locationName(tonumber(text), part.player)
+      text, color = C.locationName(tonumber(text), part.player), COLOR.location
+    elseif part.type == "location_name" then
+      color = COLOR.location
+    elseif part.type == "entrance_name" then
+      color = COLOR.entrance
+    elseif part.type == "color" and part.color then
+      color = NAMED_COLORS[part.color:gsub("_bg$", "")] or COLOR.text
     end
-    out[#out + 1] = text
+    plain[#plain + 1] = text
+    colored[#colored + 1] = color
+    colored[#colored + 1] = text
   end
+  return table.concat(plain), colored
+end
+
+-- Data packages are cached by checksum, so only changed games are requested.
+local DP_DIR = "archipelago/datapackage"
+
+local function dpPath(game, checksum)
+  return ("%s/%s_%s.lua"):format(DP_DIR, game:gsub("[^%w]", "_"):sub(1, 60), tostring(checksum):gsub("[^%w]", ""))
+end
+
+local function loadCachedPackage(game, checksum)
+  if not checksum then return false end
+  local path = dpPath(game, checksum)
+  if not love.filesystem.getInfo(path) then return false end
+  local ok, names = pcall(function() return love.filesystem.load(path)() end)
+  if ok and type(names) == "table" and names.items and names.locations then
+    C.dp[game] = names
+    return true
+  end
+  log.warn("ignoring broken data package cache " .. path)
+  return false
+end
+
+local function serializeNames(names)
+  local out = { "return {items={" }
+  for id, name in pairs(names.items) do out[#out + 1] = ("[%d]=%q,"):format(id, name) end
+  out[#out + 1] = "},locations={"
+  for id, name in pairs(names.locations) do out[#out + 1] = ("[%d]=%q,"):format(id, name) end
+  out[#out + 1] = "}}" .. string.char(10)
   return table.concat(out)
+end
+
+local function saveCachedPackage(game, checksum, names)
+  if not checksum then return end
+  local ok, err = pcall(function()
+    love.filesystem.createDirectory(DP_DIR)
+    love.filesystem.write(dpPath(game, checksum), serializeNames(names))
+  end)
+  if not ok then log.warn("could not cache data package for " .. game .. ": " .. tostring(err)) end
 end
 
 local function onCommand(msg)
   local cmd = msg.cmd
   if cmd == "RoomInfo" then
     C.seed = msg.seed_name
-    local games = json.array({})
-    for _, game in ipairs(msg.games or {}) do games[#games + 1] = game end
-    sendCommands({
-      { cmd = "GetDataPackage", games = games },
-      {
-        cmd = "Connect", password = C.password, game = data.GAME, name = C.slotName, uuid = getUuid(),
-        version = CLIENT_VERSION, items_handling = ITEMS_HANDLING_ALL, tags = json.array({}), slot_data = true,
-      },
-    })
+    local checksums = msg.datapackage_checksums or {}
+    local missing, cached = json.array({}), 0
+    for _, game in ipairs(msg.games or {}) do
+      if loadCachedPackage(game, checksums[game]) then cached = cached + 1 else missing[#missing + 1] = game end
+    end
+    log.info(("data packages: %d cached, %d requested"):format(cached, #missing))
+    local commands = {}
+    if #missing > 0 then commands[#commands + 1] = { cmd = "GetDataPackage", games = missing } end
+    commands[#commands + 1] = {
+      cmd = "Connect", password = C.password, game = data.GAME, name = C.slotName, uuid = getUuid(),
+      version = CLIENT_VERSION, items_handling = ITEMS_HANDLING_ALL, tags = json.array({}), slot_data = true,
+    }
+    sendCommands(commands)
   elseif cmd == "DataPackage" then
     for game, package in pairs((msg.data and msg.data.games) or {}) do
       local names = { items = {}, locations = {} }
       for name, id in pairs(package.item_name_to_id or {}) do names.items[id] = name end
       for name, id in pairs(package.location_name_to_id or {}) do names.locations[id] = name end
       C.dp[game] = names
+      saveCachedPackage(game, package.checksum, names)
     end
   elseif cmd == "Connected" then
     handshakeDone = true
@@ -226,7 +382,14 @@ local function onCommand(msg)
     attempts = {}
     if socket then socket:close() end
     socket = nil
-    setStatus("disconnected", "Connection refused: " .. table.concat(msg.errors or {}, ", "))
+    C.retry = false
+    local reasons = {}
+    for _, code in ipairs(msg.errors or {}) do
+      local text = REFUSED_TEXT[code]
+      reasons[#reasons + 1] = text and text:format(C.slotName) or code
+    end
+    log.warn("connection refused: " .. table.concat(msg.errors or {}, ", "))
+    setStatus("disconnected", "The server refused the connection: " .. table.concat(reasons, " "))
   elseif cmd == "ReceivedItems" then
     local index = msg.index or 0
     if index == 0 then
@@ -253,7 +416,8 @@ local function onCommand(msg)
     for _, item in ipairs(msg.locations or {}) do C.scouted[item.location] = item end
     emit("scouted")
   elseif cmd == "PrintJSON" then
-    emit("print", renderPrintJSON(msg.data), msg)
+    local plain, colored = renderPrintJSON(msg.data)
+    emit("print", plain, msg, colored)
   elseif cmd == "Bounced" then
     for _, tag in ipairs(msg.tags or {}) do
       if tag == "DeathLink" and msg.data and msg.data.source ~= C.slotName then
@@ -271,21 +435,25 @@ function C.update()
     if event.type == "open" then
       log.info("websocket open")
     elseif event.type == "message" then
-      local ok, msgs = pcall(json.decode, event.data)
-      if not ok then
-        log.error("bad json: " .. tostring(msgs))
-      else
-        for _, msg in ipairs(msgs) do
-          local handled, err = pcall(onCommand, msg)
-          if not handled then log.error("handling " .. tostring(msg.cmd) .. ": " .. tostring(err)) end
-        end
+      for _, msg in ipairs(event.msgs) do
+        local handled, err = pcall(onCommand, msg)
+        if not handled then log.error("handling " .. tostring(msg.cmd) .. ": " .. tostring(err)) end
       end
+      if not socket then return end
     elseif event.type == "close" or event.type == "error" then
       socket = nil
-      log.warn("socket " .. event.type .. ": " .. tostring(event.msg))
-      if not handshakeDone and startAttempt() then return end
+      log.warn("socket " .. event.type .. ": " .. tostring(event.msg) .. " [" .. tostring(event.reason) .. "]")
+      if not handshakeDone then
+        failures[#failures + 1] = event
+        if startAttempt() then return end
+        local target = C.target or { host = "?", port = 0 }
+        if event.reason == "badaddress" then C.retry = false end
+        setStatus("disconnected", failureText(target.host, target.port))
+        return
+      end
       local wasConnected = C.status == "connected"
-      setStatus("disconnected", (handshakeDone and "Connection lost: " or "Could not connect: ") .. tostring(event.msg))
+      setStatus("disconnected", "Connection lost: " .. (event.reason == "closed" and "the server closed it."
+        or "the network dropped. Reconnecting..."))
       handshakeDone = false
       if wasConnected then emit("disconnected") end
       return

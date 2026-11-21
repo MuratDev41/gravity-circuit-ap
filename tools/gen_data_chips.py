@@ -6,7 +6,9 @@ the "misc" category is commented out in the game). Each chip is written with how
   ("boss",    STAGE)       dropped by the Circuit boss of STAGE
   ("region",  REGION)      obtained in a fixed region (Opening Stage, Hub, Fortress N)
   ("section", STAGE, N)    stage miniboss in checkpoint section N
-  ("npc",     STAGE)       hub NPC that appears after rescues in STAGE and one boss clear
+  ("npc",     STAGE, NEED) hub NPC that appears after one boss clear and a rescue in STAGE:
+                           ("bot", N) for rescue bot N, ("count", N) for N rescues there
+  ("rescues", REGION)      needs all 64 rescues (Nega's chip is in the HQ healing tube)
   ("late",    REGION)      story-gated: needs all 8 Circuit bosses and REGION
   ("enemy",   [STAGES])    random enemy drop, available in any listed stage
 
@@ -32,7 +34,7 @@ FIXED_CHIPS = {
     "CRYSTAL_CIRCUIT_BANK": ("region", "Fortress 2"),
     "SCRAP_GOLEM": ("section", "PATCH", 2),
     "VIRUS_HELI": ("section", "SHIFT", 0),
-    "NEGA": ("region", "Hub"),
+    "NEGA": ("rescues", "Hub"),
     "GUARD": ("region", "Hub"),
     "SOLDIER_BOT_A": ("region", "Hub"),
     "SOLDIER_BOT_B": ("region", "Hub"),
@@ -44,13 +46,13 @@ FIXED_CHIPS = {
     "GUARDIAN_CORPS": ("region", "Hub"),
     # Prim is always in the hub; the ELEC rescue condition in prim-bot-npc.lua only shows the paint easel.
     "PAINTER_BOT": ("region", "Hub"),
-    "DUAL": ("npc", "OPTIC"),
-    "SPOOKED_BOT": ("npc", "PATCH"),
-    "YUKI": ("npc", "COOLER"),
-    "BALL_KID_BOT": ("npc", "SHIFT"),
-    "AMADEUS": ("npc", "WAVE"),
-    "MINER_BOT": ("npc", "BREAK"),
-    "NERD_BOT": ("npc", "CIPHER"),
+    "DUAL": ("npc", "OPTIC", ("bot", 3)),
+    "SPOOKED_BOT": ("npc", "PATCH", ("bot", 4)),
+    "YUKI": ("npc", "COOLER", ("bot", 1)),
+    "BALL_KID_BOT": ("npc", "SHIFT", ("count", 4)),
+    "AMADEUS": ("npc", "WAVE", ("bot", 6)),
+    "MINER_BOT": ("npc", "BREAK", ("count", 7)),
+    "NERD_BOT": ("npc", "CIPHER", ("count", 4)),
     "KERNEL": ("region", "Fortress 1"),
     "RESEARCHER_BOT": ("late", "Fortress 3"),
 }

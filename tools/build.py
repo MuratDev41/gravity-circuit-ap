@@ -17,7 +17,8 @@ CLIENT = ROOT / "client"
 PACKAGING = ROOT / "packaging"
 DIST = ROOT / "dist"
 
-RELEASE_FILES = ["README.md", "Gravity Circuit.yaml", "Install Mod.bat", "Uninstall Mod.bat", "install.ps1"]
+RELEASE_FILES = ["README.md", "Gravity Circuit.yaml", "Install Mod.bat", "Uninstall Mod.bat", "install.ps1",
+                 "install.sh"]
 
 
 def version() -> str:

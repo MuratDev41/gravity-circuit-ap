@@ -10,7 +10,7 @@ from .options import GravityCircuitOptions
 from .regions import create_regions
 from .rules import set_rules
 
-CLIENT_VERSION = "0.10.1"
+CLIENT_VERSION = "0.11.0"
 
 CLASSIFICATION = {
     "progression": ItemClassification.progression,

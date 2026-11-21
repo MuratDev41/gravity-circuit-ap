@@ -8,13 +8,16 @@ local outbox = love.thread.getChannel(outName)
 
 local ok, W = pcall(require, "archipelago.winhttp")
 if not ok then
-  inbox:push({ type = "error", msg = "could not load WinHTTP: " .. tostring(W) })
+  inbox:push({ type = "error", msg = "could not load WinHTTP: " .. tostring(W), reason = "nowinhttp" })
   return
 end
+local json = require("archipelago.json")
 
-local ws, session, connect = W.open(host, port, secure, path)
+local ws, session, connect, httpStatus = W.open(host, port, secure, path)
 if not ws then
-  inbox:push({ type = "error", msg = session })
+  local msg, code = session, connect
+  local reason = code and W.reason(code) or (httpStatus and "notap") or "other"
+  inbox:push({ type = "error", msg = msg, reason = reason, status = httpStatus })
   return
 end
 
@@ -34,18 +37,24 @@ local parts = {}
 while true do
   local rc = W.lib.WinHttpWebSocketReceive(ws, buf, SIZE, read, btype)
   if rc ~= 0 then
-    inbox:push({ type = "close", msg = "connection lost (" .. tonumber(rc) .. ")" })
+    inbox:push({ type = "close", msg = "connection lost (" .. tonumber(rc) .. ")", reason = "lost" })
     break
   end
   local t = btype[0]
   if t == W.BUFFER_CLOSE then
-    inbox:push({ type = "close", msg = "server closed the connection" })
+    inbox:push({ type = "close", msg = "server closed the connection", reason = "closed" })
     break
   end
   parts[#parts + 1] = ffi.string(buf, read[0])
   if t == W.BUFFER_UTF8_MESSAGE or t == W.BUFFER_BINARY_MESSAGE then
-    inbox:push({ type = "message", data = table.concat(parts) })
+    local text = table.concat(parts)
     parts = {}
+    local decoded, msgs = pcall(json.decode, text)
+    if decoded and type(msgs) == "table" then
+      inbox:push({ type = "message", msgs = msgs })
+    else
+      inbox:push({ type = "message", err = tostring(msgs) })
+    end
   end
 end
 

@@ -53,6 +53,9 @@ def set_rules(world: "GravityCircuitWorld") -> None:
             item = access_item(STAGE_BY_KEY[spec[1]])
             set_rule(location, lambda state, item=item:
                      state.has(item, player) and state.has("Boss Defeated", player))
+        elif mode == "rescues":
+            # inside the HQ healing tube, which opens after all 64 rescues
+            set_rule(location, lambda state: state.has_all(access_items, player))
         elif mode == "late":
             # The Researcher needs ten boss clears: all eight Circuit bosses plus Fortress 1 and 2.
             add_rule(location, lambda state: state.has("Boss Defeated", player, 8))

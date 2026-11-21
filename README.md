@@ -6,7 +6,7 @@ The game connects to the Archipelago server by itself. There is no external clie
 modified: the client is loaded from the game's save folder.
 
 - **Archipelago game name:** `Gravity Circuit (MuratDev's Implementation)`
-- **Requires:** Archipelago 0.6.4+, Gravity Circuit 1.2.2 on Windows
+- **Requires:** Archipelago 0.6.4+, Gravity Circuit 1.2.2 on Windows, or Linux / Steam Deck through Proton
 
 ## Features
 
@@ -29,7 +29,7 @@ modified: the client is loaded from the game's save folder.
 apworld/gravity_circuit/   Archipelago world (options, regions, rules, data)
 client/                    In-game client, installed into %APPDATA%\Gravity Circuit\
   main.lua                 Loader that runs before the game's own main.lua
-  archipelago/             Protocol client, game hooks, overlay, WinHTTP websocket
+  archipelago/             Protocol client, game hooks, overlay, WinHTTP and LuaSocket websockets
 packaging/                 Files shipped in the release zip (installer, player guide, YAML template)
 tools/                     Build script and generators for data, caches, data chips and the PopTracker pack
 tests/                     Data consistency tests

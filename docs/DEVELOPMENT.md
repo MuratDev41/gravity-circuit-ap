@@ -23,10 +23,17 @@ the globals they patch exist.
 
 ## Networking
 
-The client talks to the Archipelago server directly. WinHTTP's WebSocket API (through the LuaJIT FFI) provides
-`ws://` and `wss://`. It runs in two `love.thread`s, because WinHTTP allows one send and one receive in flight and
-receives block. The reader owns the receive loop; the writer sends queued frames and is the only thread that frees
-the handles. Without a scheme, `wss` is tried first and then `ws`, like the official clients.
+The client talks to the Archipelago server directly. Two transports (`ws.lua`):
+
+- WinHTTP's WebSocket API through the LuaJIT FFI, for `ws://` and `wss://`. It runs in two `love.thread`s,
+  because WinHTTP allows one send and one receive in flight and receives block. The reader owns the receive
+  loop; the writer sends queued frames and is the only thread that frees the handles.
+- A small WebSocket client over LuaSocket (`ws_socket.lua`), `ws://` only. Used when WinHTTP's WebSocket
+  functions are missing (Wine/Proton) and as the last fallback.
+
+Without a scheme the order is wss (WinHTTP), ws (WinHTTP), ws (LuaSocket). `"transport"` in `connection.json`
+(`auto`, `winhttp`, `socket`) forces one. The threads decode the JSON and pass tables through the channel.
+Data packages are cached per game and checksum in `archipelago/datapackage/`.
 
 WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression warning. Connections still work.
 
@@ -64,8 +71,9 @@ WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression 
 - Pickup sections come from map object positions against the stage's checkpoints (`tools/gen_money_caches.py` uses
   the same split).
 - Data chip sources come from the NPC and boss scripts (`tools/gen_data_chips.py`). Rescue-gated hub NPCs also need
-  one boss clear; Kernel's chip needs the Fortress 1 boss; the Researcher needs ten bosses cleared (all eight Circuit
-  bosses plus Fortress 1 and 2, which under `fortress_access` means both Fortress Access items). Prim is always in
+  one boss clear and a specific rescue in their stage. Nega's chip is inside the HQ healing tube
+  (`hub-healing-chamber.lua`), which only opens after all 64 rescues; Kernel's chip needs the Fortress 1 boss;
+  the Researcher needs ten bosses cleared (all eight Circuit bosses plus Fortress 1 and 2, which under `fortress_access` means both Fortress Access items). Prim is always in
   the hub, because the ELEC rescue condition in `prim-bot-npc.lua` only shows the paint easel.
 - Enemy chips are logical in any stage containing that enemy; variants are resolved from map object parameters.
 - Nurse chips cost 64 tokens in total, one per rescue bot. Logic grants 8 tokens per enterable stage plus one per
@@ -91,5 +99,5 @@ palette shader at runtime. These images are derived from the game and must not b
 
 ## Limitations
 
-- Windows only (WinHTTP).
+- On Linux (Proton) only `ws://` works; WinHTTP is not used there.
 - Master Levels (remix maps), Circuit Mode, Boss Rush and NG+ are not supported.

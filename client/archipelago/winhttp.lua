@@ -24,6 +24,30 @@ local kernel32 = ffi.C
 
 local M = { lib = lib }
 
+-- Wine's WinHTTP may not have the WebSocket functions.
+function M.hasWebSocket()
+  local ok = pcall(function()
+    return lib.WinHttpWebSocketCompleteUpgrade ~= nil and lib.WinHttpWebSocketReceive ~= nil
+  end)
+  return ok
+end
+
+local REASONS = {
+  [12002] = "timeout",       -- ERROR_WINHTTP_TIMEOUT
+  [12005] = "badaddress",    -- ERROR_WINHTTP_INVALID_URL
+  [12006] = "badaddress",    -- ERROR_WINHTTP_UNRECOGNIZED_SCHEME
+  [12007] = "notfound",      -- ERROR_WINHTTP_NAME_NOT_RESOLVED
+  [12029] = "refused",       -- ERROR_WINHTTP_CANNOT_CONNECT
+  [12030] = "reset",         -- ERROR_WINHTTP_CONNECTION_ERROR
+  [12152] = "notap",         -- ERROR_WINHTTP_INVALID_SERVER_RESPONSE
+  [12175] = "tls",           -- ERROR_WINHTTP_SECURE_FAILURE
+  [12157] = "tls",           -- ERROR_WINHTTP_SECURE_CHANNEL_ERROR
+  [12037] = "tls", [12038] = "tls", [12044] = "tls", [12045] = "tls",
+}
+function M.reason(code)
+  return REASONS[code] or "other"
+end
+
 M.ACCESS_TYPE_DEFAULT_PROXY   = 0
 M.ACCESS_TYPE_AUTOMATIC_PROXY = 4
 M.FLAG_SECURE                 = 0x00800000
@@ -61,7 +85,10 @@ function M.open(host, port, secure, path)
   if session == nil then
     session = lib.WinHttpOpen(M.wide("GravityCircuitAP/0.1"), M.ACCESS_TYPE_DEFAULT_PROXY, nil, nil, 0)
   end
-  if session == nil then return nil, "WinHttpOpen failed (" .. M.lastError() .. ")" end
+  if session == nil then
+    local err = M.lastError()
+    return nil, "WinHttpOpen failed (" .. err .. ")", err
+  end
   -- infinite receive timeout: the AP server can be silent for a long time
   lib.WinHttpSetTimeouts(session, 10000, 10000, 10000, 0)
 
@@ -69,7 +96,7 @@ function M.open(host, port, secure, path)
   if connect == nil then
     local err = M.lastError()
     lib.WinHttpCloseHandle(session)
-    return nil, "WinHttpConnect failed (" .. err .. ")"
+    return nil, "WinHttpConnect failed (" .. err .. ")", err
   end
 
   local flags = secure and M.FLAG_SECURE or 0
@@ -79,7 +106,7 @@ function M.open(host, port, secure, path)
     if request ~= nil then lib.WinHttpCloseHandle(request) end
     lib.WinHttpCloseHandle(connect)
     lib.WinHttpCloseHandle(session)
-    return nil, what .. " failed (" .. err .. ")"
+    return nil, what .. " failed (" .. err .. ")", err
   end
   if request == nil then return fail("WinHttpOpenRequest") end
   if lib.WinHttpSetOption(request, M.OPTION_UPGRADE_TO_WEB_SOCKET, nil, 0) == 0 then
@@ -96,7 +123,7 @@ function M.open(host, port, secure, path)
     lib.WinHttpCloseHandle(request)
     lib.WinHttpCloseHandle(connect)
     lib.WinHttpCloseHandle(session)
-    return nil, "server answered HTTP " .. code .. " instead of a websocket upgrade"
+    return nil, "server answered HTTP " .. code .. " instead of a websocket upgrade", nil, code
   end
 
   local ws = lib.WinHttpWebSocketCompleteUpgrade(request, 0)
