@@ -31,7 +31,7 @@ This zip contains:
 2. Double-click **`Install Mod.bat`**.
    - This copies `main.lua` and the `archipelago` folder into `%APPDATA%\Gravity Circuit\`.
    - The game files in Steam are **not** changed. Updating or verifying the game in Steam won't remove the mod.
-3. Start Gravity Circuit from Steam as normal. You should see `AP: Not connected | F9: connection` in the bottom-left corner.
+3. Start Gravity Circuit from Steam as normal. You should see `AP: Not connected | F9: connection` at the top of the screen.
 
 If Windows says the script is blocked, right-click the zip → *Properties* → tick *Unblock* before extracting, then extract again.
 
@@ -52,7 +52,7 @@ servers accept it, so enter the address as usual, without `wss://`. To remove th
    - **Server:** the address and port of the room, for example `archipelago.gg:38281`.
    - **Slot:** your slot name from the YAML.
    - **Password:** the room password, if any.
-3. Press **Enter**. The bottom-left changes to `AP: Connected as <slot>`. Once connected, that line hides after a
+3. Press **Enter**. The top line changes to `AP: Connected as <slot>`. Once connected, that line hides after a
    few seconds; it comes back while the game is paused, while disconnected, or with F9 open.
 4. On the title screen, start a **NEW GAME in an empty save slot**. The message "This save is now linked to Archipelago slot …" appears.
    - Only that save takes part in Archipelago. Your normal saves are never changed.

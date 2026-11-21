@@ -3,8 +3,9 @@
 ## 0.11.0
 - "Data Chip - Nega" now requires all 8 stage Access items. The chip is inside the HQ healing tube, which only
   opens after all 64 rescues.
-- Item messages moved to the bottom left and use the game's font, coloured like the Archipelago text client. The
-  connection line hides a few seconds after connecting and shows again when disconnected, paused or with F9 open.
+- Item messages moved to the bottom left and use the game's font (smaller than the game's own text), coloured like
+  the Archipelago text client. The connection line moved to the top; it hides a few seconds after connecting and
+  shows again when disconnected, paused or with F9 open.
 - Shopsanity: the shop's description box shows what the selected slot sends and to whom.
 - Fixed checkpoint refills not filling the new segment after receiving a Burst Booster.
 - Clearer connection errors. Pasted addresses are cleaned up, and a bad address or a refused connection no

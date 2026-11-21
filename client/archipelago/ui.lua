@@ -214,7 +214,7 @@ function UIX.textinput(t)
   return true
 end
 
--- Drawn in the game's pixel space (GAME_WIDTH x GAME_HEIGHT) at the game's scale.
+-- Drawn at half the game's pixel scale, so the text is smaller than the game's own.
 
 local function shadowText(f, text, x, y, color, alpha, limit, align)
   local shadow = plainText(text)
@@ -253,7 +253,8 @@ function UIX.draw(state)
   local f, gameFont = getFont()
   local scale = 1
   if gameFont then
-    scale = math.max(1, math.floor(math.min(W / (GAME_WIDTH or 400), H / (GAME_HEIGHT or 240))))
+    local gameScale = math.floor(math.min(W / (GAME_WIDTH or 400), H / (GAME_HEIGHT or 240)))
+    scale = math.max(1, math.floor(gameScale / 2))
   end
   love.graphics.scale(scale)
   local VW, VH = W / scale, H / scale
@@ -263,26 +264,30 @@ function UIX.draw(state)
 
   if state.status ~= lastStatus then lastStatus, statusChanged = state.status, now end
 
-  -- bottom-left, growing upward
   local margin = 4
-  local limit = math.floor(VW * 0.62)
-  local y = VH - margin
 
+  -- status and warning: top centre
+  local topLimit = math.floor(VW * 0.7)
+  local topX = math.floor((VW - topLimit) / 2)
+  local ty = margin
   local showStatus = not state.connected or UIX.open or state.paused or now - statusChanged < STATUS_SECONDS
   if showStatus then
     local color = state.connected and { 0.55, 1, 0.6 } or { 1, 0.7, 0.4 }
     local status = "AP: " .. clean(state.status)
     if state.active then status = status .. ("  |  %d/%d checks"):format(state.done, state.total) end
     status = status .. "  |  F9: connection"
-    local n = lineCount(f, status, limit)
-    y = y - n * lh
-    shadowText(f, status, margin, y, color, 0.9, limit)
+    shadowText(f, status, topX, ty, color, 0.9, topLimit, "center")
+    ty = ty + lineCount(f, status, topLimit) * lh + 2
   end
   if state.warning then
     local text = clean(state.warning)
-    y = y - lineCount(f, text, limit) * lh - 2
-    shadowText(f, text, margin, y, COLORS.warn, 0.95, limit)
+    shadowText(f, text, topX, ty, COLORS.warn, 0.95, topLimit, "center")
+    ty = ty + lineCount(f, text, topLimit) * lh + 2
   end
+
+  -- message log: bottom-left, growing upward
+  local limit = math.floor(VW * 0.62)
+  local y = VH - margin
 
   local visible = {}
   for i = #UIX.messages, 1, -1 do
@@ -304,8 +309,8 @@ function UIX.draw(state)
     }
     local label = clean(state.shop.text)
     local tw = f:getWidth(label)
-    panelBox((VW - tw) / 2 - 6, 18, tw + 12, lh + 6)
-    shadowText(f, label, (VW - tw) / 2, 21, SHOP_COLORS[state.shop.kind] or SHOP_COLORS.filler, 1)
+    panelBox((VW - tw) / 2 - 6, ty + 2, tw + 12, lh + 6)
+    shadowText(f, label, (VW - tw) / 2, ty + 5, SHOP_COLORS[state.shop.kind] or SHOP_COLORS.filler, 1)
   end
 
   if state.locked then
