@@ -3,8 +3,9 @@ local client = require("archipelago.client")
 local game = require("archipelago.game")
 local ui = require("archipelago.ui")
 local mapexport = require("archipelago.mapexport")
+local sprites = require("archipelago.sprites")
 
-local AP = { VERSION = "0.11.0" }
+local AP = { VERSION = "0.12.0" }
 
 local RECONNECT_DELAY = 15
 
@@ -68,6 +69,7 @@ function AP.tick()
   client.update()
   game.update()
   mapexport.update()
+  sprites.update()
   log.update()
   if wantConnected and client.retry and client.status == "disconnected"
     and love.timer.getTime() - lastAttempt > RECONNECT_DELAY then

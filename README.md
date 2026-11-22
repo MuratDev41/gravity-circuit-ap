@@ -29,7 +29,7 @@ modified: the client is loaded from the game's save folder.
 apworld/gravity_circuit/   Archipelago world (options, regions, rules, data)
 client/                    In-game client, installed into %APPDATA%\Gravity Circuit\
   main.lua                 Loader that runs before the game's own main.lua
-  archipelago/             Protocol client, game hooks, overlay, WinHTTP and LuaSocket websockets
+  archipelago/             Protocol client, game hooks, overlay, websockets (LuaSocket + Schannel, WinHTTP)
 packaging/                 Files shipped in the release zip (installer, player guide, YAML template)
 tools/                     Build script and generators for data, caches, data chips and the PopTracker pack
 tests/                     Data consistency tests
@@ -94,6 +94,8 @@ python -m unittest discover tests
 ## Credits
 
 Gravity Circuit is by Domesticated Ant Games. This project contains no game files. Developed by Murat Kaan Tekeli.
+Item sprites for other games come from KaitoKid's [ArchipelagoUtilities](https://github.com/agilbert1412/ArchipelagoUtilities)
+asset database and are downloaded at runtime, not shipped.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 0.11.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
+Version 0.12.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
 
 This zip contains:
 
@@ -43,8 +43,8 @@ If Windows says the script is blocked, right-click the zip → *Properties* → 
      `sh install.sh "/path/to/compatdata/858710/pfx/drive_c/users/steamuser/AppData/Roaming/Gravity Circuit"`.
 3. Start the game from Steam as normal.
 
-Under Proton the mod connects with plain `ws://` (LÖVE has no TLS of its own). archipelago.gg and self-hosted
-servers accept it, so enter the address as usual, without `wss://`. To remove the mod, run `sh install.sh --uninstall`.
+Enter the server address as usual; `wss://` works under Proton too. To remove the mod, run
+`sh install.sh --uninstall`.
 
 ## 4. Connect and play
 1. In game, press **F9**.
@@ -96,14 +96,14 @@ Double-click **`Uninstall Mod.bat`**. Your saves and connection settings are kep
 - **Log file:** `%APPDATA%\Gravity Circuit\archipelago\ap_log.txt` (on Linux, the same path inside the Proton prefix).
   Include it when you report a problem.
 - **Force a connection method:** add `"transport": "socket"` (or `"winhttp"`) to
-  `archipelago\connection.json`. The default, `"auto"`, tries WinHTTP first and falls back to sockets.
+  `archipelago\connection.json`. The default, `"auto"`, uses sockets first and falls back to WinHTTP.
 
 ## Known limitations
-- On Linux / Proton only `ws://` works (no `wss://`).
-- The server shows a warning that the client doesn't support websocket compression. It still works.
 - The remixed "Master Levels", Circuit Mode, Boss Rush and NG+ aren't supported.
 
 ## Credits
 - Gravity Circuit by Domesticated Ant Games. This package contains no game files: the mod loads your own copy of the game.
 - Archipelago by the Archipelago team (https://archipelago.gg).
+- Shop sprites for other games' items: KaitoKid's ArchipelagoUtilities asset database
+  (https://github.com/agilbert1412/ArchipelagoUtilities), downloaded when needed.
 - APWorld and mod by Murat Kaan Tekeli.

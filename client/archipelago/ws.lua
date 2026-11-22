@@ -1,6 +1,6 @@
 -- WebSocket connections run in love.threads, which also decode the JSON.
 --   winhttp: ws:// and wss://, reader and writer threads (ws_reader.lua, ws_writer.lua)
---   socket:  LuaSocket, ws:// only, one thread (ws_socket.lua); for Proton/Wine and as a fallback
+--   socket:  LuaSocket, one thread (ws_socket.lua); wss:// through Schannel (tls.lua), permessage-deflate
 local log = require("archipelago.log")
 
 local WS = {}
@@ -58,6 +58,16 @@ function WS.hasWinHTTP()
   return winhttpOk
 end
 
+local tlsOk = nil
+function WS.hasTLS()
+  if tlsOk == nil then
+    local ok, tls = pcall(require, "archipelago.tls")
+    tlsOk = ok and tls.available or false
+    log.info("Schannel TLS " .. (tlsOk and "available" or "not available"))
+  end
+  return tlsOk
+end
+
 function WS.new(host, port, secure, transport)
   counter = counter + 1
   local self = setmetatable({}, WS)
@@ -106,6 +116,7 @@ function WS:poll()
         self.writer = love.thread.newThread("archipelago/ws_writer.lua")
         self.writer:start(ev.ws, ev.session, ev.connect, self.outName)
       end
+      log.info(("ws#%d open%s"):format(self.id, ev.compressed and " (compressed)" or ""))
       if self.state == "closing" then
         self.outbox:push("__close__")
       else

@@ -25,17 +25,16 @@ the globals they patch exist.
 
 The client talks to the Archipelago server directly. Two transports (`ws.lua`):
 
-- WinHTTP's WebSocket API through the LuaJIT FFI, for `ws://` and `wss://`. It runs in two `love.thread`s,
-  because WinHTTP allows one send and one receive in flight and receives block. The reader owns the receive
-  loop; the writer sends queued frames and is the only thread that frees the handles.
-- A small WebSocket client over LuaSocket (`ws_socket.lua`), `ws://` only. Used when WinHTTP's WebSocket
-  functions are missing (Wine/Proton) and as the last fallback.
+- A WebSocket client over LuaSocket (`ws_socket.lua`), in one `love.thread`. `wss://` goes through Windows'
+  Schannel via the FFI (`tls.lua`, TLS 1.2, normal certificate validation); Wine implements Schannel too, so
+  this works under Proton. It negotiates `permessage-deflate` with no context takeover in either direction, so
+  each message is (de)compressed on its own with `love.data`.
+- WinHTTP's WebSocket API through the LuaJIT FFI, as the fallback. It runs in two threads, because WinHTTP
+  allows one send and one receive in flight and receives block. It can't do compression.
 
-Without a scheme the order is wss (WinHTTP), ws (WinHTTP), ws (LuaSocket). `"transport"` in `connection.json`
-(`auto`, `winhttp`, `socket`) forces one. The threads decode the JSON and pass tables through the channel.
-Data packages are cached per game and checksum in `archipelago/datapackage/`.
-
-WinHTTP cannot negotiate `permessage-deflate`, so the server logs a compression warning. Connections still work.
+Without a scheme the order is wss and ws over sockets, then wss and ws over WinHTTP. `"transport"` in
+`connection.json` (`auto`, `socket`, `winhttp`) forces one. The threads decode the JSON and pass tables through
+the channel. Data packages are cached per game and checksum in `archipelago/datapackage/`.
 
 ## Game internals used
 
@@ -99,5 +98,4 @@ palette shader at runtime. These images are derived from the game and must not b
 
 ## Limitations
 
-- On Linux (Proton) only `ws://` works; WinHTTP is not used there.
 - Master Levels (remix maps), Circuit Mode, Boss Rush and NG+ are not supported.

@@ -1,6 +1,7 @@
 local data = require("archipelago.data")
 local client = require("archipelago.client")
 local log = require("archipelago.log")
+local sprites = require("archipelago.sprites")
 
 local G = {
   active = false,   -- the loaded save is bound to the connected slot
@@ -181,6 +182,19 @@ function G.shopsanityListing(kind, res)
       else
         item.unlocked = done
       end
+      -- other games' items show their sprite in the slot instead of the slot's own icon
+      local nativeDraw = item.draw or res.draw
+      item.draw = function(id, x, y, l, ...)
+        local scouted = client.scouted[loc.id]
+        if scouted then
+          local game = client.playerGame(scouted.player)
+          if game ~= data.GAME and sprites.draw(game, client.itemName(scouted.item, scouted.player),
+              x + 8, y + 1, l, not item.unlocked) then
+            return
+          end
+        end
+        return nativeDraw(id, x, y, l, ...)
+      end
       local shopType, tokenCost = kind, item.tokens or 0
       item.unlock = function(id)
         if shopType == "chips" then
@@ -214,6 +228,9 @@ function G.scoutShops()
     for _, loc in pairs(slots) do ids[#ids + 1] = loc.id end
   end
   client.scout(ids, 0)
+  for _, player in pairs(client.players or {}) do
+    if player.game and player.game ~= data.GAME and player.game ~= "Archipelago" then sprites.prefetch(player.game) end
+  end
 end
 
 local hinted = {}
@@ -367,7 +384,10 @@ function G.applyItems(announce)
     if announce ~= false then
       for i = known + 1, #client.items do
         local item = client.items[i]
-        G.notify(itemAndPlayer("Received ", item.item, client.slot, item.flags, " from ", item.player), "item")
+        local class = itemClass(item.flags)
+        if class ~= "filler" and class ~= "trap" then
+          G.notify(itemAndPlayer("Received ", item.item, client.slot, item.flags, " from ", item.player), "item")
+        end
       end
     end
     ap.items = list
@@ -426,7 +446,6 @@ function G.applyItems(announce)
   ap.leakTotal = ap.leakTotal or 0
   if leaked > ap.leakTotal then
     Money.remove(leaked - ap.leakTotal)
-    G.notify(("Credit Leak Trap: lost %d credits"):format(leaked - ap.leakTotal), "death")
     ap.leakTotal = leaked
   end
 
@@ -491,7 +510,6 @@ local function applyOneInstant(kind, kai)
     end
   end
   ap.instant[kind] = applied + 1
-  if kind == "trapdamage" then G.notify(item.name, "death") end
 end
 
 local function processInstant()
@@ -537,7 +555,6 @@ local function scanLocations()
   for _, loc in ipairs(data.LOCATIONS) do
     if not ap.found[loc.id] and locationEnabled(loc) and detect(loc, player) then
       markFound(loc.id)
-      if loc.kind == "datachip" or loc.kind == "datachiprandom" then G.notify(loc.name, "item") end
     end
   end
 

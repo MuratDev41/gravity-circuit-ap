@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0
+- WebSocket compression (`permessage-deflate`), so the server no longer warns about it.
+- `wss://` works everywhere, including Linux / Steam Deck (Proton), through Schannel. The socket connection is
+  now the default and WinHTTP the fallback.
+- Data chip pickups, received filler items and traps no longer print a message.
+- Shopsanity slots holding another game's item show that item's sprite, from KaitoKid's ArchipelagoUtilities
+  asset database. Sprites are downloaded per game and cached in `archipelago\sprites\`.
+
 ## 0.11.0
 - "Data Chip - Nega" now requires all 8 stage Access items. The chip is inside the HQ healing tube, which only
   opens after all 64 rescues.

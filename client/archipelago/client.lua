@@ -133,7 +133,7 @@ local function failureText(host, port)
   elseif r == "tls" then
     return ("The secure (wss://) connection to %s:%d failed. Try the address with ws:// instead."):format(host, port)
   elseif r == "nosecure" then
-    return "wss:// is not available here (Linux/Proton has no WinHTTP). Enter the address without wss://."
+    return "wss:// is not available here (no TLS support). Enter the address without wss://."
   end
   return ("Could not connect to %s:%d (%s)."):format(host, port, tostring(best.msg))
 end
@@ -148,8 +148,8 @@ local REFUSED_TEXT = {
   SlotAlreadyTaken = 'Slot "%s" is already connected from somewhere else.',
 }
 
--- Without a scheme, wss is tried first and ws second, like the official clients. LuaSocket (ws:// only) is
--- the last fallback, and the only option where WinHTTP is missing.
+-- Without a scheme, wss is tried first and ws second, like the official clients. The LuaSocket transport
+-- (TLS through Schannel, compression) goes first; WinHTTP is the fallback.
 function C.connect(server, slotName, password)
   C.disconnect(true)
   slotName = tostring(slotName or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -162,15 +162,20 @@ function C.connect(server, slotName, password)
     return
   end
   attempts, failures = {}, {}
-  local useWin = C.transport ~= "socket" and WS.hasWinHTTP()
-  local useSocket = C.transport ~= "winhttp" or not useWin
-  if useWin then
-    if scheme ~= "ws" then attempts[#attempts + 1] = { host = host, port = port, secure = true, transport = "winhttp" } end
-    if scheme ~= "wss" then attempts[#attempts + 1] = { host = host, port = port, secure = false, transport = "winhttp" } end
+  local transports = {}
+  if C.transport ~= "winhttp" then transports[#transports + 1] = "socket" end
+  if C.transport ~= "socket" and WS.hasWinHTTP() then transports[#transports + 1] = "winhttp" end
+  if #transports == 0 then transports[1] = "socket" end
+  for _, transport in ipairs(transports) do
+    if scheme ~= "ws" and (transport == "winhttp" or WS.hasTLS()) then
+      attempts[#attempts + 1] = { host = host, port = port, secure = true, transport = transport }
+    end
+    if scheme ~= "wss" then
+      attempts[#attempts + 1] = { host = host, port = port, secure = false, transport = transport }
+    end
   end
-  if useSocket then
-    attempts[#attempts + 1] = { host = host, port = port, secure = scheme == "wss", transport = "socket" }
-    if scheme == "wss" and useWin then attempts[#attempts] = nil end
+  if #attempts == 0 then
+    attempts[1] = { host = host, port = port, secure = true, transport = "socket" } -- reports "nosecure"
   end
   C.target = { host = host, port = port }
   handshakeDone = false
