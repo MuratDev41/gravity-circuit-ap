@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 0.12.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
+Version 1.0.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
 
 This zip contains:
 
@@ -76,6 +76,15 @@ Useful to know:
 - **Traps (optional, `trap_chance`):**
   - Damage Trap takes 8 HP but always leaves you at 1 HP or more.
   - Credit Leak Trap takes 250 credits.
+- **Burst Link (optional, `burst_link`):** the first 2 bursts of your bar are shared with your team, so using one
+  uses it for everyone and earning one gives it to everyone. Bursts from Burst Boosters stay your own.
+  - `gravity_circuit`: shared with other Gravity Circuit players who also chose it.
+  - `silk_link`: shared with Silksong players using Silk Link. One burst is 4 of the 9 Silk in their base spool.
+- **Knockback Link (optional, `knockback_link`):** when a hit knocks you back, everyone with Knockback Link (in any
+  game that supports it) gets knocked back the same way, and the other way round. A received knockback staggers
+  Kai like a hit but takes no health.
+- **F9 settings:** DeathLink, Knockback Link and Burst Link can follow your YAML or be set in the panel; auto-connect can be
+  turned off. Both are saved in `archipelago\connection.json`.
 - **Offline play:** you can play without a connection. Checks are kept in your save and sent the next time you connect.
 - **Messages** appear in the bottom-left in the game's font, coloured like the Archipelago text client: your name in
   magenta, other players in yellow, items by class, locations in green.

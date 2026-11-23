@@ -17,6 +17,7 @@ if ($Uninstall) {
     Remove-Item -LiteralPath (Join-Path $saveDir "main.lua") -ErrorAction SilentlyContinue
     if (Test-Path $apDir) {
         Get-ChildItem $apDir -Filter *.lua | Remove-Item
+        Remove-Item -LiteralPath (Join-Path $apDir "ap_item.png") -ErrorAction SilentlyContinue
     }
     Write-Host "Removed the Archipelago client. Saves, connection settings and logs were kept."
     exit 0
@@ -25,5 +26,6 @@ if ($Uninstall) {
 New-Item -ItemType Directory -Force -Path $apDir | Out-Null
 Copy-Item -LiteralPath (Join-Path $src "main.lua") -Destination $saveDir -Force
 Copy-Item -Path (Join-Path $src "archipelago\*.lua") -Destination $apDir -Force
+Copy-Item -Path (Join-Path $src "archipelago\*.png") -Destination $apDir -Force -ErrorAction SilentlyContinue
 Write-Host "Installed to $saveDir"
 Write-Host "Start Gravity Circuit, press F9, enter server/slot/password, then start a NEW GAME in an empty slot."

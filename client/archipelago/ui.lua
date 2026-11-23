@@ -13,6 +13,28 @@ local UIX = {
   messages = {},
   autoconnect = true,
   transport = "auto",
+  -- shared with game.lua and burstlink.lua; "auto" follows the YAML
+  settings = { deathlink = "auto", burstlink = "auto", knockbacklink = "auto" },
+}
+
+-- Rows of the F9 panel, in focus order.
+local ROWS = {
+  { kind = "field", field = 1 },
+  { kind = "field", field = 2 },
+  { kind = "field", field = 3 },
+  { kind = "button" },
+  { kind = "option", key = "deathlink", label = "DeathLink", values = { "auto", "on", "off" },
+    names = { auto = "Use YAML", on = "On", off = "Off" },
+    help = "Use YAML follows death_link in your YAML. Changes apply right away." },
+  { kind = "option", key = "knockbacklink", label = "Knockback", values = { "auto", "on", "off" },
+    names = { auto = "Use YAML", on = "On", off = "Off" },
+    help = "Knockback Link: getting hit knocks back everyone with it on. Use YAML follows knockback_link." },
+  { kind = "option", key = "burstlink", label = "Burst Link",
+    values = { "auto", "off", "gravity_circuit", "silk_link" },
+    names = { auto = "Use YAML", off = "Off", gravity_circuit = "Gravity Circuit", silk_link = "Silk Link" },
+    help = "Shares your first 2 bursts with your team. Use YAML follows burst_link in your YAML." },
+  { kind = "option", key = "autoconnect", label = "Auto-connect", bool = true,
+    help = "Connect when the game starts." },
 }
 
 local CONFIG = "archipelago/connection.json"
@@ -146,13 +168,24 @@ function UIX.loadConfig()
     if type(cfg[f.key]) == "string" then f.value = cfg[f.key] end
   end
   if cfg.autoconnect ~= nil then UIX.autoconnect = cfg.autoconnect and true or false end
+  if cfg.deathlink == "auto" or cfg.deathlink == "on" or cfg.deathlink == "off" then
+    UIX.settings.deathlink = cfg.deathlink
+  end
+  if cfg.knockbacklink == "auto" or cfg.knockbacklink == "on" or cfg.knockbacklink == "off" then
+    UIX.settings.knockbacklink = cfg.knockbacklink
+  end
+  if cfg.burstlink == "auto" or cfg.burstlink == "off" or cfg.burstlink == "gravity_circuit"
+    or cfg.burstlink == "silk_link" then
+    UIX.settings.burstlink = cfg.burstlink
+  end
   if cfg.transport == "winhttp" or cfg.transport == "socket" or cfg.transport == "auto" then
     UIX.transport = cfg.transport
   end
 end
 
 function UIX.saveConfig()
-  local cfg = { autoconnect = UIX.autoconnect, transport = UIX.transport }
+  local cfg = { autoconnect = UIX.autoconnect, transport = UIX.transport, deathlink = UIX.settings.deathlink,
+                burstlink = UIX.settings.burstlink, knockbacklink = UIX.settings.knockbacklink }
   for _, f in ipairs(UIX.fields) do cfg[f.key] = f.value end
   love.filesystem.createDirectory("archipelago")
   love.filesystem.write(CONFIG, json.encode(cfg))
@@ -174,6 +207,50 @@ function UIX.push(text, kind)
 end
 
 UIX.onConnect = function() end
+UIX.onDisconnect = function() end
+UIX.onSettings = function() end
+UIX.connected = false
+
+local function optionValue(row)
+  if row.bool then return UIX.autoconnect end
+  return UIX.settings[row.key]
+end
+
+local function optionText(row)
+  local v = optionValue(row)
+  if row.bool then return v and "On" or "Off" end
+  if row.names then return row.names[v] or tostring(v) end
+  return tostring(v)
+end
+
+local function changeOption(row, dir)
+  if row.bool then
+    UIX.autoconnect = not UIX.autoconnect
+  else
+    local i = 1
+    for k, v in ipairs(row.values) do if v == UIX.settings[row.key] then i = k end end
+    UIX.settings[row.key] = row.values[(i - 1 + dir) % #row.values + 1]
+  end
+  UIX.saveConfig()
+  UIX.onSettings(row.key)
+end
+
+local function trimFields()
+  for _, field in ipairs(UIX.fields) do
+    if not field.secret then field.value = field.value:gsub("^%s+", ""):gsub("%s+$", "") end
+  end
+end
+
+local function pressButton()
+  trimFields()
+  UIX.saveConfig()
+  if UIX.connected then
+    UIX.onDisconnect()
+  else
+    UIX.open = false
+    UIX.onConnect()
+  end
+end
 
 function UIX.keypressed(key)
   if key == "f9" then
@@ -182,26 +259,25 @@ function UIX.keypressed(key)
     return true
   end
   if not UIX.open then return false end
-  local f = UIX.fields[UIX.focus]
+  local row = ROWS[UIX.focus]
+  local f = row.kind == "field" and UIX.fields[row.field]
+  local shift = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
   if key == "escape" then
     UIX.open = false
-  elseif key == "tab" or key == "down" then
-    UIX.focus = UIX.focus % #UIX.fields + 1
-  elseif key == "up" then
-    UIX.focus = (UIX.focus - 2) % #UIX.fields + 1
-  elseif key == "backspace" then
+  elseif (key == "tab" and not shift) or key == "down" then
+    UIX.focus = UIX.focus % #ROWS + 1
+  elseif key == "tab" or key == "up" then
+    UIX.focus = (UIX.focus - 2) % #ROWS + 1
+  elseif (key == "left" or key == "right") and row.kind == "option" then
+    changeOption(row, key == "left" and -1 or 1)
+  elseif key == "backspace" and f then
     local offset = utf8.offset(f.value, -1)
     f.value = offset and f.value:sub(1, offset - 1) or ""
-  elseif key == "v" and (love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")) then
+  elseif key == "v" and f and (love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")) then
     local clip = love.system.getClipboardText() or ""
     f.value = f.value .. clip:gsub("[\r\n\t]", "")
-  elseif key == "return" or key == "kpenter" then
-    for _, field in ipairs(UIX.fields) do
-      if not field.secret then field.value = field.value:gsub("^%s+", ""):gsub("%s+$", "") end
-    end
-    UIX.saveConfig()
-    UIX.open = false
-    UIX.onConnect()
+  elseif key == "return" or key == "kpenter" or (key == "space" and not f) then
+    if row.kind == "option" then changeOption(row, 1) else pressButton() end
   end
   return true
 end
@@ -209,8 +285,32 @@ end
 function UIX.textinput(t)
   if not UIX.open then return false end
   if love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl") then return true end
-  local f = UIX.fields[UIX.focus]
-  f.value = f.value .. t
+  local row = ROWS[UIX.focus]
+  if row.kind == "field" then
+    local f = UIX.fields[row.field]
+    f.value = f.value .. t
+  end
+  return true
+end
+
+-- Hit boxes of the panel rows in screen pixels, filled when the panel is drawn.
+local hits = {}
+
+function UIX.mousepressed(x, y, button)
+  if not UIX.open then return false end
+  if button ~= 1 then return true end
+  for _, h in ipairs(hits) do
+    if x >= h.x and x < h.x + h.w and y >= h.y and y < h.y + h.h then
+      UIX.focus = h.row
+      local row = ROWS[h.row]
+      if row.kind == "option" then
+        changeOption(row, (h.mid and x < h.mid) and -1 or 1)
+      elseif row.kind == "button" then
+        pressButton()
+      end
+      return true
+    end
+  end
   return true
 end
 
@@ -241,6 +341,130 @@ local function panelBox(x, y, w, h, alpha)
 end
 
 local lastStatus, statusChanged = nil, -100
+
+local PANEL = {
+  accent = { 0.4, 0.8, 1 }, label = { 0.75, 0.78, 0.85 }, dim = { 0.55, 0.57, 0.65 }, white = { 1, 1, 1 },
+  good = { 0.55, 1, 0.6 }, bad = { 1, 0.7, 0.4 },
+}
+
+local function hit(row, x, y, w, h, scale, mid)
+  hits[#hits + 1] = { row = row, x = x * scale, y = y * scale, w = w * scale, h = h * scale,
+                      mid = mid and mid * scale }
+end
+
+function UIX.drawPanel(f, lh, VW, VH, scale, state, now)
+  hits = {}
+  local pad = 10
+  local labelW = 0
+  for _, r in ipairs(ROWS) do
+    local text = r.kind == "field" and UIX.fields[r.field].label or r.label
+    if text then labelW = math.max(labelW, f:getWidth(text)) end
+  end
+  labelW = labelW + 10
+  local pw = math.min(math.max(320, labelW + 200), VW - 16)
+  local rowH = lh + 6
+  local fieldW = pw - pad * 2 - labelW
+  local statusText = clean(state.status)
+  local info = state.info or {}
+  local statusLines = lineCount(f, statusText, pw - pad * 2)
+  local row = ROWS[UIX.focus]
+  local FIELD_HELP = "Enter: connect   Ctrl+V: paste"
+  local help = row.help or (row.kind == "field" and FIELD_HELP or nil)
+  local keys = "Up/Down: move   Left/Right: change   Enter: select   Esc: close"
+  -- the box keeps one height: room for the longest help text, whatever is focused
+  local helpMax = lineCount(f, FIELD_HELP, pw - pad * 2)
+  for _, r in ipairs(ROWS) do
+    if r.help then helpMax = math.max(helpMax, lineCount(f, r.help, pw - pad * 2)) end
+  end
+  local helpLines = helpMax + lineCount(f, keys, pw - pad * 2)
+  local INFO_LINES = 2
+  local infoLines = 0
+  for _, line in ipairs(info) do infoLines = infoLines + lineCount(f, clean(line), pw - pad * 2) end
+  local ph = 24 + (lh + 4) + 3 * (rowH + 3) + rowH + 10
+    + (lh + 4) + (#ROWS - 4) * (rowH + 3) + 6
+    + statusLines * lh + math.max(infoLines, INFO_LINES) * lh + 8 + helpLines * lh + 8
+  local px, py = math.floor((VW - pw) / 2), math.floor((VH - ph) / 2)
+
+  panelBox(px, py, pw, ph, 1.15)
+  love.graphics.setColor(PANEL.accent[1], PANEL.accent[2], PANEL.accent[3], 1)
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", px + 0.5, py + 0.5, pw - 1, ph - 1, 3, 3)
+  love.graphics.setColor(PANEL.accent[1], PANEL.accent[2], PANEL.accent[3], 0.18)
+  love.graphics.rectangle("fill", px + 1, py + 1, pw - 2, lh + 8, 3, 3)
+  shadowText(f, "Archipelago", px + pad, py + 5, PANEL.white, 1)
+  local dot = state.connected and PANEL.good or PANEL.bad
+  local short = state.connected and "Connected" or "Not connected"
+  local sw = f:getWidth(short)
+  love.graphics.setColor(dot[1], dot[2], dot[3], 1)
+  love.graphics.circle("fill", px + pw - pad - sw - 7, py + 5 + lh / 2 - 1, 2.5)
+  shadowText(f, short, px + pw - pad - sw, py + 5, dot, 1)
+
+  local y = py + lh + 14
+  local function header(text)
+    shadowText(f, text, px + pad, y, PANEL.accent, 1)
+    local tw = f:getWidth(text)
+    love.graphics.setColor(PANEL.accent[1], PANEL.accent[2], PANEL.accent[3], 0.3)
+    love.graphics.rectangle("fill", px + pad + tw + 6, y + math.floor(lh / 2), pw - pad * 2 - tw - 6, 1)
+    y = y + lh + 4
+  end
+  local function rowBack(i, x, w)
+    local focused = UIX.focus == i
+    love.graphics.setColor(focused and 0.2 or 0.11, focused and 0.27 or 0.13, focused and 0.38 or 0.2, 1)
+    love.graphics.rectangle("fill", x, y, w, rowH, 2, 2)
+    if focused then
+      love.graphics.setColor(PANEL.accent[1], PANEL.accent[2], PANEL.accent[3], 0.8)
+      love.graphics.rectangle("line", x + 0.5, y + 0.5, w - 1, rowH - 1, 2, 2)
+    end
+  end
+
+  header("Connection")
+  for i = 1, 3 do
+    local field = UIX.fields[ROWS[i].field]
+    shadowText(f, field.label, px + pad, y + 3, PANEL.label, 1)
+    local fx = px + pad + labelW
+    rowBack(i, fx, fieldW)
+    local shown = field.secret and string.rep("*", utf8.len(field.value) or #field.value) or clean(field.value)
+    if UIX.focus == i and math.floor(now * 2) % 2 == 0 then shown = shown .. "_" end
+    while f:getWidth(shown) > fieldW - 8 and #shown > 1 do shown = shown:sub(2) end
+    shadowText(f, shown, fx + 4, y + 3, PANEL.white, 1)
+    hit(i, fx, y, fieldW, rowH, scale)
+    y = y + rowH + 3
+  end
+  local label = UIX.connected and "Disconnect" or "Connect"
+  local bw = f:getWidth(label) + 24
+  local bx = px + pw - pad - bw
+  rowBack(4, bx, bw)
+  shadowText(f, label, bx + 12, y + 3, UIX.connected and PANEL.bad or PANEL.good, 1)
+  hit(4, bx, y, bw, rowH, scale)
+  y = y + rowH + 10
+
+  header("Settings")
+  for i = 5, #ROWS do
+    local r = ROWS[i]
+    shadowText(f, r.label, px + pad, y + 3, PANEL.label, 1)
+    local ox, ow = px + pad + labelW, fieldW
+    rowBack(i, ox, ow)
+    local text = optionText(r)
+    local arrow = UIX.focus == i and PANEL.accent or PANEL.dim
+    shadowText(f, "<", ox + 5, y + 3, arrow, 1)
+    shadowText(f, ">", ox + ow - 5 - f:getWidth(">"), y + 3, arrow, 1)
+    shadowText(f, text, ox + math.floor((ow - f:getWidth(text)) / 2), y + 3, PANEL.white, 1)
+    hit(i, ox, y, ow, rowH, scale, ox + ow / 2)
+    y = y + rowH + 3
+  end
+  y = y + 6
+
+  shadowText(f, statusText, px + pad, y, state.connected and PANEL.good or PANEL.bad, 1, pw - pad * 2)
+  y = y + statusLines * lh
+  for _, line in ipairs(info) do
+    shadowText(f, clean(line), px + pad, y, PANEL.label, 1, pw - pad * 2)
+    y = y + lineCount(f, clean(line), pw - pad * 2) * lh
+  end
+  y = y + math.max(INFO_LINES - infoLines, 0) * lh + 8
+  if help then shadowText(f, help, px + pad, y, PANEL.dim, 1, pw - pad * 2) end
+  y = y + helpMax * lh
+  shadowText(f, keys, px + pad, y, PANEL.dim, 1, pw - pad * 2)
+end
 
 function UIX.draw(state)
   love.graphics.push("all")
@@ -320,34 +544,7 @@ function UIX.draw(state)
     shadowText(f, text, (VW - tw) / 2, VH * 0.82, { 1, 0.45, 0.45 }, 1)
   end
 
-  if UIX.open then
-    local pw = math.min(300, VW - 16)
-    local fieldX, fieldW = 64, pw - 76
-    local statusText = clean(state.status)
-    local statusLines = lineCount(f, statusText, pw - 20)
-    local ph = 30 + #UIX.fields * (lh + 8) + 18 + statusLines * lh + 8
-    local px, py = math.floor((VW - pw) / 2), math.floor((VH - ph) / 2)
-    panelBox(px, py, pw, ph, 1.1)
-    love.graphics.setColor(0.4, 0.8, 1, 1)
-    love.graphics.setLineWidth(1)
-    love.graphics.rectangle("line", px + 0.5, py + 0.5, pw - 1, ph - 1, 3, 3)
-    shadowText(f, "Archipelago connection", px + 10, py + 8, { 1, 1, 1 }, 1)
-    for i, field in ipairs(UIX.fields) do
-      local fy = py + 28 + (i - 1) * (lh + 8)
-      shadowText(f, field.label, px + 10, fy + 3, { 0.8, 0.8, 0.8 }, 1)
-      love.graphics.setColor(i == UIX.focus and 0.22 or 0.12, i == UIX.focus and 0.26 or 0.14, 0.32, 1)
-      love.graphics.rectangle("fill", px + fieldX, fy, fieldW, lh + 4, 2, 2)
-      local shown = field.secret and string.rep("*", utf8.len(field.value) or #field.value) or clean(field.value)
-      if i == UIX.focus and math.floor(now * 2) % 2 == 0 then shown = shown .. "_" end
-      while f:getWidth(shown) > fieldW - 6 and #shown > 1 do shown = shown:sub(2) end
-      shadowText(f, shown, px + fieldX + 3, fy + 3, { 1, 1, 1 }, 1)
-    end
-    local hy = py + 28 + #UIX.fields * (lh + 8)
-    shadowText(f, "Tab: next  Enter: connect  Ctrl+V: paste  Esc: close", px + 10, hy, { 0.65, 0.65, 0.7 }, 1,
-      pw - 20)
-    local color = state.connected and { 0.55, 1, 0.6 } or { 1, 0.7, 0.4 }
-    shadowText(f, statusText, px + 10, hy + 18, color, 1, pw - 20)
-  end
+  if UIX.open then UIX.drawPanel(f, lh, VW, VH, scale, state, now) end
 
   love.graphics.pop()
 end

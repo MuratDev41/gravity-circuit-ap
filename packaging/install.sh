@@ -53,7 +53,7 @@ AP_DIR="$SAVE_DIR/archipelago"
 
 if [ "$UNINSTALL" = 1 ]; then
   rm -f "$SAVE_DIR/main.lua"
-  [ -d "$AP_DIR" ] && rm -f "$AP_DIR"/*.lua
+  [ -d "$AP_DIR" ] && rm -f "$AP_DIR"/*.lua "$AP_DIR/ap_item.png"
   echo "Removed the Archipelago client from $SAVE_DIR. Saves, connection settings and logs were kept."
   exit 0
 fi
@@ -61,5 +61,6 @@ fi
 mkdir -p "$AP_DIR"
 cp "$SRC/main.lua" "$SAVE_DIR/"
 cp "$SRC"/archipelago/*.lua "$AP_DIR/"
+for f in "$SRC"/archipelago/*.png; do [ -f "$f" ] && cp "$f" "$AP_DIR/"; done
 echo "Installed to $SAVE_DIR"
 echo "Start Gravity Circuit, press F9, enter server/slot/password, then start a NEW GAME in an empty slot."

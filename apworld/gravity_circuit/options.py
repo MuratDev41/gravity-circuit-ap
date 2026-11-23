@@ -79,6 +79,24 @@ class LogicDifficulty(Choice):
     default = 0
 
 
+class KnockbackLink(Toggle):
+    """Getting knocked back by a hit knocks back everyone with Knockback Link, and the other way round. A received
+    knockback staggers Kai like a hit without taking health."""
+    display_name = "Knockback Link"
+
+
+class BurstLink(Choice):
+    """Share the base burst bar (the first 2 bursts) with other players on your team. Bursts from Burst Boosters
+    stay your own.
+    Gravity Circuit: shared with other Gravity Circuit players who also chose this.
+    Silk Link: shared with Silksong's Silk Link. One burst is 4 Silk of the 9 in the base spool."""
+    display_name = "Burst Link"
+    option_off = 0
+    option_gravity_circuit = 1
+    option_silk_link = 2
+    default = 0
+
+
 @dataclass
 class GravityCircuitOptions(PerGameCommonOptions):
     start_inventory_from_pool: StartInventoryPool
@@ -93,3 +111,5 @@ class GravityCircuitOptions(PerGameCommonOptions):
     trap_chance: TrapChance
     logic_difficulty: LogicDifficulty
     death_link: DeathLink
+    knockback_link: KnockbackLink
+    burst_link: BurstLink

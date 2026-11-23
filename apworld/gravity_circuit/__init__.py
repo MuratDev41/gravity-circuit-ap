@@ -10,7 +10,7 @@ from .options import GravityCircuitOptions
 from .regions import create_regions
 from .rules import set_rules
 
-CLIENT_VERSION = "0.12.0"
+CLIENT_VERSION = "1.0.0"
 
 CLASSIFICATION = {
     "progression": ItemClassification.progression,
@@ -30,9 +30,9 @@ OPTIONAL_LOCATION_KINDS = {
 }
 
 SLOT_DATA_OPTIONS = ("bosses_required", "fortress_access", "logic_difficulty", "death_link", "money_caches",
-                     "small_money_caches", "data_chips", "random_data_chips", "shopsanity")
-BOOL_SLOT_DATA = ("fortress_access", "death_link", "money_caches", "small_money_caches", "data_chips",
-                  "random_data_chips", "shopsanity")
+                     "small_money_caches", "data_chips", "random_data_chips", "shopsanity", "burst_link", "knockback_link")
+BOOL_SLOT_DATA = ("fortress_access", "death_link", "knockback_link", "money_caches", "small_money_caches",
+                  "data_chips", "random_data_chips", "shopsanity")
 
 
 FORTRESS_ITEMS = {fortress_access_item(region) for region, _ in FORTRESS_ACCESS}

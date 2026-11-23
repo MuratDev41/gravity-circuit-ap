@@ -13,6 +13,8 @@ local BASE = "/agilbert1412/ArchipelagoUtilities/main/KaitoKid.ArchipelagoUtilit
 local DIR = "archipelago/sprites"
 local MAX_AGE = 7 * 24 * 3600
 local SIZE = 16
+-- shown for games that aren't in the database, or have neither the item nor a game icon there
+local FALLBACK = "archipelago/ap_item.png"
 
 local games = {}    -- [clean game] = { state = "loading" | "ready" | "missing", items = {}, icon = path }
 local images = {}   -- [path] = Image | false
@@ -154,12 +156,22 @@ function S.prefetch(game)
   if game then request(game) end
 end
 
--- Path of the sprite for an item, the game's own icon if that item has none, or nil.
+local hasFallback = nil
+local function fallback()
+  if hasFallback == nil then hasFallback = love.filesystem.getInfo(FALLBACK) ~= nil end
+  return hasFallback and FALLBACK or nil
+end
+
+-- Path of the sprite for an item, else the game's own icon, else the AP icon; nil while the game is loading.
 function S.find(game, item)
   if not game then return nil end
   local entry = request(game)
-  if entry.state ~= "ready" then return nil end
-  return entry.items[clean(item)] or entry.icon
+  if entry.state == "loading" then return nil end
+  if entry.state == "ready" then
+    local path = entry.items[clean(item)] or entry.icon
+    if path then return path end
+  end
+  return fallback()
 end
 
 local function image(path)

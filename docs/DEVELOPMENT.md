@@ -50,6 +50,8 @@ the channel. Data packages are cached per game and checksum in `archipelago/data
 | Chips | ids 1–20 (2 = Air Jumper); researched with credits and rescue tokens; `chips.unlock(id)` grants |
 | Money caches | `LARGE_PICKUP_BOX` / `SMALL_PICKUP_BOX`; runtime `self.ID` is the map object id |
 | Data chips | `DataChip.collect` writes `GAMEDATA.player.dataChips[id]`; the MISC category is commented out in the game |
+| Burst bar | `UI.objects.PlayerHUD`: `availableBursts` (whole bursts, up to `maxBurstStacks`), `power.current` 0–1000 toward the next; `reset` zeroes it on spawn and `power.target` refills granted bursts over a few frames. Burst Link (`burstlink.lua`) wraps `update`/`reset` to find the HUD and syncs the first 2 bursts with a team data storage key using clamped `add` operations |
+| Knockback | `kai.class.static.states.DAMAGED.enteredState` sets `velocity.horizontal.momentum` (±3) and `velocity.vertical.current` (≤ -2.25); Knockback Link (`knockback.lua`) wraps it to send the direction and calls `kai:gotoState("DAMAGED", dir, "weak")` to apply one (no health lost; `takeDamage(0)` would trigger Burst Shield and Hardware Barrier) |
 | Shop purchase | `shopScreen.dbCallback` → `item.unlock(id)`, then the dialogue runs `GIVE_EQUIP_UNLOCK` → `UI.equippableUnlockNotification`, which grants the item |
 
 ## Checks and items

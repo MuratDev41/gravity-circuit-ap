@@ -43,3 +43,10 @@ game: "Gravity Circuit (MuratDev's Implementation)"
 
   # When you die, everyone with DeathLink dies, and the other way round.
   death_link: false
+
+  # Getting knocked back by a hit knocks back everyone with Knockback Link, and the other way round.
+  knockback_link: false
+
+  # Share the base burst bar (the first 2 bursts) with your team. Burst Booster bursts stay your own.
+  # off, gravity_circuit (other Gravity Circuit players), silk_link (Silksong's Silk Link, 1 burst = 4 Silk)
+  burst_link: off

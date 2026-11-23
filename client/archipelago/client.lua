@@ -236,17 +236,54 @@ function C.sendGoal()
   sendCommands({ { cmd = "StatusUpdate", status = CLIENT_GOAL } })
 end
 
-function C.setDeathLink(enabled)
+-- Connection tags (DeathLink, KnockbackLink); changes are sent right away.
+local tagSet = {}
+function C.setTag(tag, enabled)
+  if (tagSet[tag] or false) == (enabled and true or false) and C.tagsSent then return end
+  tagSet[tag] = enabled and true or nil
   local tags = json.array({})
-  if enabled then tags[1] = "DeathLink" end
+  for name in pairs(tagSet) do tags[#tags + 1] = name end
+  table.sort(tags)
   C.tags = tags
-  if C.isConnected() then sendCommands({ { cmd = "ConnectUpdate", tags = tags } }) end
+  if C.isConnected() then
+    sendCommands({ { cmd = "ConnectUpdate", tags = tags } })
+    C.tagsSent = true
+  end
+end
+
+function C.setDeathLink(enabled)
+  C.setTag("DeathLink", enabled)
+end
+
+function C.bounce(tags, data)
+  if not C.isConnected() then return end
+  sendCommands({ { cmd = "Bounce", tags = json.array(tags), data = data } })
+end
+
+function C.uuid()
+  return getUuid()
 end
 
 function C.sendDeathLink(cause)
   if not C.isConnected() then return end
   sendCommands({ { cmd = "Bounce", tags = json.array({ "DeathLink" }),
                    data = { time = os.time(), source = C.slotName, cause = cause } } })
+end
+
+-- Data storage. Replies and changes to watched keys arrive as the "storage" event with the SetReply message.
+function C.watch(keys)
+  if not C.isConnected() or #keys == 0 then return end
+  sendCommands({ { cmd = "SetNotify", keys = json.array(keys) } })
+end
+
+-- operations: list of { operation = "add" | "max" | "min" | ..., value = ... }; extra fields are echoed back.
+function C.storageSet(key, default, operations, extra)
+  if not C.isConnected() then return false end
+  local command = { cmd = "Set", key = key, default = default, want_reply = true,
+                    operations = json.array(operations) }
+  for k, v in pairs(extra or {}) do command[k] = v end
+  sendCommands({ command })
+  return true
 end
 
 -- hint = 2 also creates hints for the scouted locations (only new ones are announced).
@@ -364,6 +401,7 @@ local function onCommand(msg)
     end
   elseif cmd == "Connected" then
     handshakeDone = true
+    C.tagsSent = false
     C.team, C.slot = msg.team, msg.slot
     C.slotData = msg.slot_data or {}
     C.players = {}
@@ -381,7 +419,6 @@ local function onCommand(msg)
     C.itemsSynced = false
     C.scouted = {}
     setStatus("connected", ("Connected as %s"):format(C.slotName))
-    if C.slotData.death_link then C.setDeathLink(true) end
     emit("connected")
   elseif cmd == "ConnectionRefused" then
     attempts = {}
@@ -427,8 +464,12 @@ local function onCommand(msg)
     for _, tag in ipairs(msg.tags or {}) do
       if tag == "DeathLink" and msg.data and msg.data.source ~= C.slotName then
         emit("deathlink", msg.data.source, msg.data.cause)
+      elseif tag == "KnockbackLink" then
+        emit("knockback", msg.data)
       end
     end
+  elseif cmd == "SetReply" then
+    emit("storage", msg)
   elseif cmd == "InvalidPacket" then
     log.warn("InvalidPacket: " .. tostring(msg.text))
   end

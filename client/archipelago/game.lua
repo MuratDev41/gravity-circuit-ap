@@ -10,6 +10,8 @@ local G = {
   access = {},      -- [stage select slot 1..8] = true
   hooks = {},
   notify = function() end,
+  -- replaced by the F9 panel's settings table; deathlink is "auto" (the YAML's death_link), "on" or "off"
+  settings = { deathlink = "auto" },
 }
 
 local STAGE_KEYS = { "OPTIC", "PATCH", "COOLER", "ELEC", "SHIFT", "WAVE", "BREAK", "CIPHER" }
@@ -182,14 +184,14 @@ function G.shopsanityListing(kind, res)
       else
         item.unlocked = done
       end
-      -- other games' items show their sprite in the slot instead of the slot's own icon
+      -- the slot shows the sprite of the item it holds (the AP icon if the database has none), not its own icon
       local nativeDraw = item.draw or res.draw
       item.draw = function(id, x, y, l, ...)
         local scouted = client.scouted[loc.id]
         if scouted then
-          local game = client.playerGame(scouted.player)
-          if game ~= data.GAME and sprites.draw(game, client.itemName(scouted.item, scouted.player),
-              x + 8, y + 1, l, not item.unlocked) then
+          local game = client.playerGame(scouted.player) or data.GAME
+          if sprites.draw(game, client.itemName(scouted.item, scouted.player),
+              x + 8, y + 1, l, kind == "bursts" and not item.unlocked) then
             return
           end
         end
@@ -229,7 +231,7 @@ function G.scoutShops()
   end
   client.scout(ids, 0)
   for _, player in pairs(client.players or {}) do
-    if player.game and player.game ~= data.GAME and player.game ~= "Archipelago" then sprites.prefetch(player.game) end
+    if player.game and player.game ~= "Archipelago" then sprites.prefetch(player.game) end
   end
 end
 
@@ -324,6 +326,44 @@ local function classPalette(kind)
     Colors.Text[key] = { name = key, [0] = base[0], [1] = mix(1, 0.55), [2] = rgb, [3] = mix(0, 0.45), [4] = base[4] }
   end
   return Colors.Text[key]
+end
+
+-- Slot palettes per item class. The slot sprites use kai_red, kai_orange and kai_yellow, which the shop's colour
+-- swap shader maps to its own palette: the frame is red (dark), orange (mid) and yellow (light); the background
+-- inside it is a red fill with an orange border. Shades are fractions of the class colour, above 1 mixes to white.
+local SLOT_SHADES = {
+  frame = { 0.35, 0.8, 1.35 },
+  bg = { 0.5, 1, 1.35 },
+}
+local slotTints = {}
+local function slotTint(part, kind, selected, dim)
+  local rgb = AP_RGB[kind]
+  if not (rgb and createColorVector and Colors) then return nil end
+  local key = part .. kind .. (selected and "s" or "") .. (dim and "d" or "")
+  if not slotTints[key] then
+    local function shade(f)
+      if selected then f = f + 0.25 end
+      if dim then f = f * 0.6 end
+      local t = math.max(f - 1, 0)
+      f = math.min(f, 1)
+      return { rgb[1] * f + (1 - rgb[1] * f) * t, rgb[2] * f + (1 - rgb[2] * f) * t, rgb[3] * f + (1 - rgb[3] * f) * t }
+    end
+    local s = SLOT_SHADES[part]
+    slotTints[key] = createColorVector(shade(s[1]), shade(s[2]), shade(s[3]), Colors.white, Colors.whitePlus,
+      Colors.whitePlus)
+  end
+  return slotTints[key]
+end
+
+local SLOT_PARTS = { ["shop-screen-purchasable-slot"] = "frame", ["shop-screen-purchasable-slot-bg"] = "bg" }
+
+-- Class of the item in a shopsanity slot that is still for sale, or nil.
+local function slotClass(shop, index)
+  local item = shop.inventory and shop.inventory[index]
+  local loc = item and item.id and shopLoc[shop.type] and shopLoc[shop.type][item.id]
+  if not loc or G.isDone(loc.id) then return nil end
+  local scouted = client.scouted[loc.id]
+  return scouted and itemClass(scouted.flags), item
 end
 
 local function isFreshSave(player)
@@ -584,7 +624,40 @@ end
 local wasGameOver = false
 local deathFromLink = false
 
+function G.deathLinkFromYaml()
+  local ap = apData()
+  return client.slotData.death_link == true or (ap ~= nil and ap.deathLink == true)
+end
+
+function G.deathLinkEnabled()
+  local mode = G.settings.deathlink
+  if mode == "on" then return true end
+  if mode == "off" then return false end
+  return G.deathLinkFromYaml()
+end
+
+-- Sends the DeathLink tag to the server to match the setting.
+function G.applyDeathLink()
+  if client.isConnected() then client.setDeathLink(G.deathLinkEnabled()) end
+end
+
+-- Lines for the F9 panel.
+G.currentStage = currentStage
+
+-- Lines for the F9 panel. knockback: the Knockback Link module, which owns its setting.
+function G.deathLinkInfo(knockback)
+  local function state(on, mode)
+    return (on and "on" or "off") .. (mode == "auto" and " (YAML)" or "")
+  end
+  local line = "DeathLink " .. state(G.deathLinkEnabled(), G.settings.deathlink)
+  if knockback then
+    line = line .. ", Knockback Link " .. state(knockback.enabled(), G.settings.knockbacklink)
+  end
+  return { line }
+end
+
 function G.receiveDeath(source, cause)
+  if not G.deathLinkEnabled() then return end
   if not G.active or not GAMESTATE or GAMESTATE.isGameOver then return end
   if not currentStage() or not GameObject or not GameObject.getPlayer then return end
   local kai = GameObject:getPlayer()
@@ -598,8 +671,7 @@ end
 local function checkDeath()
   local over = GAMESTATE and GAMESTATE.isGameOver or false
   if over and not wasGameOver then
-    local ap = apData()
-    if not deathFromLink and ap and (client.slotData.death_link or ap.deathLink) then
+    if not deathFromLink and G.active and client.isConnected() and G.deathLinkEnabled() then
       client.sendDeathLink(client.slotName .. " was scrapped in " .. tostring(currentStage() or "a stage"))
     end
   end
@@ -761,9 +833,50 @@ local function installHooks()
     local ShopScreen = UI and UI.objects and UI.objects.ShopScreen
     if not (ShopScreen and ShopScreen.draw and ShopScreen.activate) then return false end
     local originalDraw, originalActivate = ShopScreen.draw, ShopScreen.activate
+    local originalSlot = ShopScreen.drawPurchasableSlot
+    -- the colour swaps the shop pushes while drawing, per layer, so a tinted background can put them back
+    local swaps, pushSwap = nil, nil
     ShopScreen.draw = function(self, ...)
       G.shop, G.shopSeen = self, love.timer.getTime()
-      return originalDraw(self, ...)
+      if not (G.active and G.shopsanity() and Shader and Shader.pushColorSwapper and originalSlot) then
+        return originalDraw(self, ...)
+      end
+      local hadPush = rawget(Shader, "pushColorSwapper")
+      pushSwap, swaps = Shader.pushColorSwapper, {}
+      Shader.pushColorSwapper = function(shader, l, ui, ...)
+        swaps[l] = { ui, ... }
+        return pushSwap(shader, l, ui, ...)
+      end
+      local ok, err = pcall(originalDraw, self, ...)
+      rawset(Shader, "pushColorSwapper", hadPush)
+      swaps = nil
+      if not ok then error(err, 0) end
+    end
+    if originalSlot then
+      ShopScreen.drawPurchasableSlot = function(self, l, index, x, y, ...)
+        local kind, item = nil, nil
+        if swaps then kind, item = slotClass(self, index) end
+        local selected, dim = self.slot == index, self.type == "bursts" and item and not item.unlocked
+        local base = kind and ShopScreen.ICON_PALETTES and ShopScreen.ICON_PALETTES.base
+        local sprite = self.sprite
+        if not (base and sprite and slotTint("bg", kind, selected, dim)) then
+          return originalSlot(self, l, index, x, y, ...)
+        end
+        local hadDraw = rawget(sprite, "drawFrame")
+        local drawFrame = sprite.drawFrame
+        sprite.drawFrame = function(sp, anim, frame, fx, fy, layer, ...)
+          local prev = swaps and swaps[layer]
+          local part = SLOT_PARTS[anim]
+          if not (part and prev) then return drawFrame(sp, anim, frame, fx, fy, layer, ...) end
+          pushSwap(Shader, layer, true, base, slotTint(part, kind, selected, dim))
+          drawFrame(sp, anim, frame, fx, fy, layer, ...)
+          pushSwap(Shader, layer, unpack(prev))
+          return sp
+        end
+        local ok, err = pcall(originalSlot, self, l, index, x, y, ...)
+        rawset(sprite, "drawFrame", hadDraw)
+        if not ok then error(err, 0) end
+      end
     end
     ShopScreen.activate = function(self, activate, kind, ...)
       local results = { originalActivate(self, activate, kind, ...) }
@@ -915,6 +1028,7 @@ function G.onConnected()
   lastPosition.map = nil
   G.scoutShops()
   if G.saveLoaded then G.evaluateSave() end
+  G.applyDeathLink()
 end
 
 function G.onItems()

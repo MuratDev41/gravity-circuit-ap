@@ -4,8 +4,10 @@ local game = require("archipelago.game")
 local ui = require("archipelago.ui")
 local mapexport = require("archipelago.mapexport")
 local sprites = require("archipelago.sprites")
+local burstlink = require("archipelago.burstlink")
+local knockback = require("archipelago.knockback")
 
-local AP = { VERSION = "0.12.0" }
+local AP = { VERSION = "1.0.0" }
 
 local RECONNECT_DELAY = 15
 
@@ -25,6 +27,16 @@ local function connect()
   client.connect(server, slot, ui.get("password"))
 end
 ui.onConnect = connect
+ui.onDisconnect = function()
+  wantConnected = false
+  client.disconnect()
+end
+ui.onSettings = function(key)
+  if key == "deathlink" then game.applyDeathLink() end
+  if key == "burstlink" then burstlink.configure() end
+  if key == "knockbacklink" then knockback.apply() end
+end
+game.settings = ui.settings
 
 game.notify = ui.push
 
@@ -36,7 +48,17 @@ client.handlers.status = function(status, msg)
     ui.push(msg, "item")
   end
 end
-client.handlers.connected = function() game.onConnected() end
+client.handlers.connected = function()
+  game.onConnected()
+  burstlink.onConnected()
+  knockback.apply()
+end
+client.handlers.storage = function(msg) burstlink.onStorage(msg) end
+burstlink.game = game
+burstlink.settings = ui.settings
+knockback.game = game
+knockback.settings = ui.settings
+client.handlers.knockback = function(data) knockback.onBounce(data) end
 client.handlers.items = function() game.onItems() end
 client.handlers.scouted = function()
   local shop = game.shop
@@ -67,9 +89,12 @@ function AP.tick()
     if ui.autoconnect and ui.get("slot") ~= "" then connect() end
   end
   client.update()
+  ui.connected = client.status ~= "disconnected"
   game.update()
   mapexport.update()
   sprites.update()
+  burstlink.update()
+  knockback.update()
   log.update()
   if wantConnected and client.retry and client.status == "disconnected"
     and love.timer.getTime() - lastAttempt > RECONNECT_DELAY then
@@ -89,6 +114,11 @@ local function overlayState()
     locked = game.selectedStageLocked(),
     shop = game.shopInfo(),
     paused = game.isPaused(),
+    info = (function()
+      local lines = game.deathLinkInfo(knockback)
+      lines[#lines + 1] = burstlink.info()
+      return lines
+    end)(),
   }
 end
 
@@ -115,6 +145,12 @@ wrappers.keypressed = function(...)
   local ok, handled = pcall(ui.keypressed, (...))
   if ok and handled then return end
   if real.keypressed then return real.keypressed(...) end
+end
+
+wrappers.mousepressed = function(...)
+  local ok, handled = pcall(ui.mousepressed, ...)
+  if ok and handled then return end
+  if real.mousepressed then return real.mousepressed(...) end
 end
 
 wrappers.keyreleased = function(...)

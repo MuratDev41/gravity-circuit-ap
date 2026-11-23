@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0
+- Knockback Link (`knockback_link` in the YAML, or the F9 panel): getting knocked back by a hit knocks back
+  everyone with Knockback Link, in the same direction. A received knockback staggers Kai like a hit but takes no
+  health. One per second each way.
+- Burst Link (`burst_link` in the YAML): the base burst bar, the first 2 bursts, is shared with your team.
+  `gravity_circuit` shares it with other Gravity Circuit players, `silk_link` with Silksong's Silk Link
+  (1 burst = 4 Silk). Bursts from Burst Boosters stay your own. The F9 panel can override it.
+- F9 panel redone: Connection and Settings sections, a Connect/Disconnect button, mouse support, and DeathLink,
+  Knockback and Burst Link settings (Use YAML or a fixed choice) that apply right away.
+- Shopsanity slots are coloured by item class, frame and background.
+- Gravity Circuit's own items in the shops use the sprite database too. Items without a sprite show an
+  Archipelago icon.
+- Fixed chip-shop sprites showing dimmed before the chip was bought.
+
 ## 0.12.0
 - WebSocket compression (`permessage-deflate`), so the server no longer warns about it.
 - `wss://` works everywhere, including Linux / Steam Deck (Proton), through Schannel. The socket connection is
