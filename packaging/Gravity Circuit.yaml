@@ -33,13 +33,29 @@ game: "Gravity Circuit (MuratDev's Implementation)"
   # Enemy data chips are checks: 43 locations. They are random drops, so they can need repeat kills.
   random_data_chips: false
 
+  # With random_data_chips, enemies whose chip check isn't done yet show an Archipelago icon.
+  data_chip_markers: true
+
   # Every slot in Nega's burst shop (19) and the Nurse's chip shop (19) is a check.
   # The shop shows what each slot sends and to whom, and progression items there get hinted.
   shopsanity: true
 
   # Percent chance that each filler item is a trap instead (0-100).
-  # Damage Trap: lose 8 HP (never lethal). Credit Leak Trap: lose 250 credits.
   trap_chance: 0
+
+  # Traps that can appear. Remove the ones you don't want.
+  # Damage Trap: lose 8 HP (never lethal). Credit Leak Trap: lose 250 credits.
+  # Knockback Trap: knocked back, no damage. Burst Drain Trap: empties your bursts.
+  # Palette Trap: colours change for 20 s. Pixelate Trap: 15 s. Earthquake Trap: 8 s. Flip Trap: upside down, 10 s.
+  enabled_traps:
+    - Damage Trap
+    - Credit Leak Trap
+    - Knockback Trap
+    - Burst Drain Trap
+    - Palette Trap
+    - Pixelate Trap
+    - Earthquake Trap
+    - Flip Trap
 
   # When you die, everyone with DeathLink dies, and the other way round.
   death_link: false
@@ -50,3 +66,12 @@ game: "Gravity Circuit (MuratDev's Implementation)"
   # Share the base burst bar (the first 2 bursts) with your team. Burst Booster bursts stay your own.
   # off, gravity_circuit (other Gravity Circuit players), silk_link (Silksong's Silk Link, 1 burst = 4 Silk)
   burst_link: off
+
+  # Recolour sprites with hues picked from the seed. off, kai (only Kai), everything (Kai, enemies, bosses, NPCs)
+  palette_randomizer: off
+
+  # Boss health per stage (vanilla 32). vanilla, weak (12-24), strong (36-48), chaotic (8-48). The final boss keeps its own.
+  boss_health: vanilla
+
+  # off, shuffled (stage themes among stage themes, boss themes among boss themes), mixed (all together)
+  music_shuffle: off

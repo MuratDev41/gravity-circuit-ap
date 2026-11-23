@@ -677,6 +677,12 @@ D.ITEMS = {
   [1195573361] = { kind = "token", gid = 1, name = "Rescue Token" },
   [1195573368] = { kind = "trapdamage", gid = 8, name = "Damage Trap" },
   [1195573369] = { kind = "trapcredits", gid = 250, name = "Credit Leak Trap" },
+  [1195573370] = { kind = "trapknock", gid = 0, name = "Knockback Trap" },
+  [1195573371] = { kind = "trapburst", gid = 0, name = "Burst Drain Trap" },
+  [1195573372] = { kind = "trappalette", gid = 20, name = "Palette Trap" },
+  [1195573373] = { kind = "trappixel", gid = 15, name = "Pixelate Trap" },
+  [1195573374] = { kind = "trapquake", gid = 8, name = "Earthquake Trap" },
+  [1195573375] = { kind = "trapflip", gid = 10, name = "Flip Trap" },
 }
 D.BURST_BOSS_STAGE = { [4] = "COOLER", [5] = "WAVE", [7] = "SHIFT", [8] = "WAVE", [9] = "CIPHER", [10] = "ELEC", [11] = "PATCH", [12] = "SHIFT", [13] = "OPTIC", [14] = "BREAK", [15] = "COOLER", [16] = "CIPHER", [17] = "ELEC", [18] = "PATCH", [19] = "BREAK", [20] = "OPTIC" }
 D.itemNames, D.locationNames = {}, {}

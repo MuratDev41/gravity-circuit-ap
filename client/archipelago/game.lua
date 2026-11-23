@@ -435,7 +435,8 @@ function G.applyItems(announce)
 
   local equippables = GAMEDATA.equippables
   local health, burstUps, credits, leaked, tokens = 0, 0, 0, 0, 0
-  local instant = { heal = 0, burstfill = 0, trapdamage = 0 }
+  local instant = { heal = 0, burstfill = 0, trapdamage = 0, trapknock = 0, trapburst = 0, trappalette = 0,
+                    trappixel = 0, trapquake = 0, trapflip = 0 }
   G.access = {}
   for _, id in ipairs(ap.items) do
     local item = data.ITEMS[id]
@@ -511,8 +512,9 @@ function G.recountTokens()
   player.rescueTokens = math.max(0, math.min(count, MAX_RESCUE_TOKENS))
 end
 
--- Refills and the damage trap act on Kai, so they wait until he is playable inside a stage.
-local INSTANT_ORDER = { "heal", "burstfill", "trapdamage" }
+-- Refills and traps act on Kai, so they wait until he is playable inside a stage. Traps other than Damage are
+-- handled by traps.lua through G.trapHandler.
+local INSTANT_ORDER = { "heal", "burstfill", "trapdamage", "trapknock", "trapburst", "trappalette", "trappixel", "trapquake", "trapflip" }
 local instantCooldown = 0
 
 local function kaiReady()
@@ -548,6 +550,8 @@ local function applyOneInstant(kind, kai)
       kai.health = kai.health - damage
       GlobalObserver:none("PLAYER_HEALTH_UPDATED", kai.health, kai.maxhealth)
     end
+  elseif G.trapHandler then
+    G.trapHandler(kind, item, kai)
   end
   ap.instant[kind] = applied + 1
 end

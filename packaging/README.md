@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 1.0.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
+Version 1.1.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
 
 This zip contains:
 
@@ -73,9 +73,19 @@ Useful to know:
 - **Filler items:**
   - 50 to 1000 Credits and Rescue Tokens (spend them at the Nurse) take effect immediately.
   - Health Refill, Full Health Refill and Burst Refill wait until you're in a stage, then apply one at a time.
-- **Traps (optional, `trap_chance`):**
+- **Traps (optional, `trap_chance`; pick them with `enabled_traps`):** they wait until you're in a stage.
   - Damage Trap takes 8 HP but always leaves you at 1 HP or more.
   - Credit Leak Trap takes 250 credits.
+  - Knockback Trap knocks you back like a hit, without damage.
+  - Burst Drain Trap empties your bursts. With Burst Link, the shared ones stay.
+  - Palette Trap changes every colour for 20 seconds; Pixelate Trap pixelates the screen for 15; Earthquake Trap
+    shakes it for 8; Flip Trap turns it upside down for 10.
+- **Data chip markers (`data_chip_markers`, on by default):** with `random_data_chips`, enemies whose chip check isn't
+  done yet show an Archipelago icon above them.
+- **Boss health (optional, `boss_health`):** bosses get random health per stage: `weak` 12-24, `strong` 36-48,
+  `chaotic` 8-48 (vanilla is 32). The final boss keeps its own.
+- **Music shuffle (optional, `music_shuffle`):** `shuffled` swaps stage themes among themselves and boss themes among
+  themselves; `mixed` swaps them all together. Intros, jingles, the hub and the final boss themes stay.
 - **Burst Link (optional, `burst_link`):** the first 2 bursts of your bar are shared with your team, so using one
   uses it for everyone and earning one gives it to everyone. Bursts from Burst Boosters stay your own.
   - `gravity_circuit`: shared with other Gravity Circuit players who also chose it.
@@ -83,8 +93,10 @@ Useful to know:
 - **Knockback Link (optional, `knockback_link`):** when a hit knocks you back, everyone with Knockback Link (in any
   game that supports it) gets knocked back the same way, and the other way round. A received knockback staggers
   Kai like a hit but takes no health.
-- **F9 settings:** DeathLink, Knockback Link and Burst Link can follow your YAML or be set in the panel; auto-connect can be
-  turned off. Both are saved in `archipelago\connection.json`.
+- **Palette randomizer (optional, `palette_randomizer`):** recolours Kai (`kai`), or Kai, enemies, bosses and NPCs
+  (`everything`), with hues picked from the seed. Stages and the HUD keep their colours.
+- **F9 settings:** DeathLink, Knockback Link, Burst Link and the palette can follow your YAML or be set in the panel;
+  auto-connect can be turned off. Both are saved in `archipelago\connection.json`.
 - **Offline play:** you can play without a connection. Checks are kept in your save and sent the next time you connect.
 - **Messages** appear in the bottom-left in the game's font, coloured like the Archipelago text client: your name in
   magenta, other players in yellow, items by class, locations in green.

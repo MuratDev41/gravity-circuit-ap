@@ -96,6 +96,15 @@ function KB.onBounce(data)
   expires = now + LIFETIME
 end
 
+-- Knockback Trap: the same stagger, without sending it over Knockback Link.
+function KB.knock(kai, dir)
+  if not kai or kai:isInDamagedState() then return end
+  applyingRemote = true
+  local ok, err = pcall(kai.gotoState, kai, "DAMAGED", dir, "weak", false)
+  applyingRemote = false
+  if not ok then log.error("knockback trap: " .. tostring(err)) end
+end
+
 local function canApply(kai)
   local G = KB.game
   return kai and not kai.dead and (kai.health or 0) > 0 and kai.checkVulnerable and kai:checkVulnerable()

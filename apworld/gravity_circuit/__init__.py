@@ -3,14 +3,15 @@ from typing import Any, Dict, List
 from BaseClasses import Item, ItemClassification, Location, Tutorial
 from worlds.AutoWorld import WebWorld, World
 
-from .data import (FILLER_WEIGHTS, FORTRESS, FORTRESS_ACCESS, GAME_NAME, ITEM_BY_NAME, ITEM_GROUPS, ITEM_NAME_TO_ID,
-                   ITEMS, LOCATION_GROUPS, LOCATION_NAME_TO_ID, LOCATIONS, SHOP_BURSTS, STAGES, TRAP_WEIGHTS,
-                   access_item, boss_region, fortress_access_item)
+from .data import (BOSS_HEALTH_RANGES, BOSS_HEALTH_STAGES, FILLER_WEIGHTS, FORTRESS, FORTRESS_ACCESS, GAME_NAME,
+                   ITEM_BY_NAME, ITEM_GROUPS, ITEM_NAME_TO_ID, ITEMS, LOCATION_GROUPS, LOCATION_NAME_TO_ID, LOCATIONS,
+                   MUSIC_BOSS_THEMES, MUSIC_STAGE_THEMES, SHOP_BURSTS, STAGES, TRAP_WEIGHTS, access_item, boss_region,
+                   fortress_access_item)
 from .options import GravityCircuitOptions
 from .regions import create_regions
 from .rules import set_rules
 
-CLIENT_VERSION = "1.0.0"
+CLIENT_VERSION = "1.1.0"
 
 CLASSIFICATION = {
     "progression": ItemClassification.progression,
@@ -30,9 +31,11 @@ OPTIONAL_LOCATION_KINDS = {
 }
 
 SLOT_DATA_OPTIONS = ("bosses_required", "fortress_access", "logic_difficulty", "death_link", "money_caches",
-                     "small_money_caches", "data_chips", "random_data_chips", "shopsanity", "burst_link", "knockback_link")
-BOOL_SLOT_DATA = ("fortress_access", "death_link", "knockback_link", "money_caches", "small_money_caches",
-                  "data_chips", "random_data_chips", "shopsanity")
+                     "small_money_caches", "data_chips", "random_data_chips", "shopsanity", "burst_link",
+                     "knockback_link", "palette_randomizer", "data_chip_markers", "boss_health",
+                     "music_shuffle")
+BOOL_SLOT_DATA = ("fortress_access", "death_link", "knockback_link", "data_chip_markers", "money_caches",
+                  "small_money_caches", "data_chips", "random_data_chips", "shopsanity")
 
 
 FORTRESS_ITEMS = {fortress_access_item(region) for region, _ in FORTRESS_ACCESS}
@@ -75,6 +78,8 @@ class GravityCircuitWorld(World):
     ut_can_gen_without_yaml = True
 
     starting_stages: List[str]
+    boss_hp: Dict[str, int]
+    music_map: Dict[str, str]
 
     @staticmethod
     def interpret_slot_data(slot_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -90,6 +95,8 @@ class GravityCircuitWorld(World):
                 if key in slot_data:
                     getattr(self.options, key).value = int(slot_data[key])
             self.starting_stages = []
+            self.boss_hp = slot_data.get("boss_hp", {})
+            self.music_map = slot_data.get("music_map", {})
             return
 
         stages = [access_item(s) for s in STAGES]
@@ -97,6 +104,23 @@ class GravityCircuitWorld(World):
         self.starting_stages = stages[:self.options.starting_stages.value]
         for name in self.starting_stages:
             self.multiworld.push_precollected(self.create_item(name))
+
+        self.boss_hp = {}
+        hp_range = BOSS_HEALTH_RANGES.get(self.options.boss_health.value)
+        if hp_range:
+            self.boss_hp = {key: self.random.randint(*hp_range) for key in BOSS_HEALTH_STAGES}
+
+        self.music_map = {}
+        if self.options.music_shuffle == self.options.music_shuffle.option_mixed:
+            pools = [MUSIC_STAGE_THEMES + MUSIC_BOSS_THEMES]
+        elif self.options.music_shuffle == self.options.music_shuffle.option_shuffled:
+            pools = [MUSIC_STAGE_THEMES, MUSIC_BOSS_THEMES]
+        else:
+            pools = []
+        for pool in pools:
+            shuffled = list(pool)
+            self.random.shuffle(shuffled)
+            self.music_map.update(zip(pool, shuffled))
 
     def location_enabled(self, kind: str) -> bool:
         option = OPTIONAL_LOCATION_KINDS.get(kind)
@@ -155,12 +179,17 @@ class GravityCircuitWorld(World):
         set_rules(self)
 
     def get_filler_item_name(self) -> str:
-        weights = TRAP_WEIGHTS if self.random.randint(1, 100) <= self.options.trap_chance.value else FILLER_WEIGHTS
+        traps = {name: w for name, w in TRAP_WEIGHTS.items() if name in self.options.enabled_traps.value}
+        weights = FILLER_WEIGHTS
+        if traps and self.random.randint(1, 100) <= self.options.trap_chance.value:
+            weights = traps
         return self.random.choices(list(weights), weights=list(weights.values()))[0]
 
     def fill_slot_data(self) -> Dict[str, Any]:
         slot_data: Dict[str, Any] = {key: getattr(self.options, key).value for key in SLOT_DATA_OPTIONS}
         for key in BOOL_SLOT_DATA:
             slot_data[key] = bool(slot_data[key])
+        slot_data["boss_hp"] = self.boss_hp
+        slot_data["music_map"] = self.music_map
         slot_data["mod_version"] = CLIENT_VERSION
         return slot_data

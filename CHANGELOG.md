@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+- Palette randomizer (`palette_randomizer` in the YAML, or the F9 panel): `kai` recolours Kai, `everything` also
+  enemies, bosses and NPCs, each with its own hue. Hues come from the seed and slot, so a seed always looks the
+  same. Stages and the HUD keep their colours.
+- New traps: Knockback, Burst Drain, Palette (20 s), Pixelate (15 s), Earthquake (8 s) and Flip (10 s).
+  `enabled_traps` picks which traps can appear.
+- Data chip markers (`data_chip_markers`, on by default): with `random_data_chips`, enemies whose chip check isn't
+  done yet show an Archipelago icon.
+- Boss health (`boss_health`): `weak`, `strong` or `chaotic` random health per stage. The final boss keeps its own.
+- Music shuffle (`music_shuffle`): `shuffled` or `mixed` stage and boss themes.
+
 ## 1.0.0
 - Knockback Link (`knockback_link` in the YAML, or the F9 panel): getting knocked back by a hit knocks back
   everyone with Knockback Link, in the same direction. A received knockback staggers Kai like a hit but takes no

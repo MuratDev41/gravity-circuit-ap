@@ -6,8 +6,13 @@ local mapexport = require("archipelago.mapexport")
 local sprites = require("archipelago.sprites")
 local burstlink = require("archipelago.burstlink")
 local knockback = require("archipelago.knockback")
+local palette = require("archipelago.palette")
+local traps = require("archipelago.traps")
+local markers = require("archipelago.markers")
+local bosshp = require("archipelago.bosshp")
+local music = require("archipelago.music")
 
-local AP = { VERSION = "1.0.0" }
+local AP = { VERSION = "1.1.0" }
 
 local RECONNECT_DELAY = 15
 
@@ -35,6 +40,7 @@ ui.onSettings = function(key)
   if key == "deathlink" then game.applyDeathLink() end
   if key == "burstlink" then burstlink.configure() end
   if key == "knockbacklink" then knockback.apply() end
+  if key == "palette" then palette.configure() end
 end
 game.settings = ui.settings
 
@@ -52,12 +58,19 @@ client.handlers.connected = function()
   game.onConnected()
   burstlink.onConnected()
   knockback.apply()
+  palette.configure()
+  music.configure()
 end
 client.handlers.storage = function(msg) burstlink.onStorage(msg) end
 burstlink.game = game
 burstlink.settings = ui.settings
 knockback.game = game
 knockback.settings = ui.settings
+palette.settings = ui.settings
+traps.game, traps.knockback, traps.burstlink, traps.palette = game, knockback, burstlink, palette
+game.trapHandler = traps.apply
+markers.game = game
+bosshp.game = game
 client.handlers.knockback = function(data) knockback.onBounce(data) end
 client.handlers.items = function() game.onItems() end
 client.handlers.scouted = function()
@@ -95,6 +108,11 @@ function AP.tick()
   sprites.update()
   burstlink.update()
   knockback.update()
+  palette.update()
+  traps.update()
+  markers.update()
+  bosshp.update()
+  music.update()
   log.update()
   if wantConnected and client.retry and client.status == "disconnected"
     and love.timer.getTime() - lastAttempt > RECONNECT_DELAY then

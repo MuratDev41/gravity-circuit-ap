@@ -146,13 +146,33 @@ FILLER_AND_TRAPS = [
     ("Rescue Token", 113, "token", 1, "progression"),
     ("Damage Trap", 120, "trapdamage", 8, "trap"),
     ("Credit Leak Trap", 121, "trapcredits", 250, "trap"),
+    # timed traps: value is seconds
+    ("Knockback Trap", 122, "trapknock", 0, "trap"),
+    ("Burst Drain Trap", 123, "trapburst", 0, "trap"),
+    ("Palette Trap", 124, "trappalette", 20, "trap"),
+    ("Pixelate Trap", 125, "trappixel", 15, "trap"),
+    ("Earthquake Trap", 126, "trapquake", 8, "trap"),
+    ("Flip Trap", 127, "trapflip", 10, "trap"),
 ]
 
 FILLER_WEIGHTS = {
     "50 Credits": 12, "100 Credits": 18, "250 Credits": 14, "500 Credits": 10, "1000 Credits": 4,
     "Health Refill": 10, "Full Health Refill": 4, "Burst Refill": 10, "Rescue Token": 8,
 }
-TRAP_WEIGHTS = {"Damage Trap": 1, "Credit Leak Trap": 1}
+TRAP_WEIGHTS = {"Damage Trap": 1, "Credit Leak Trap": 1, "Knockback Trap": 1, "Burst Drain Trap": 1,
+                "Palette Trap": 1, "Pixelate Trap": 1, "Earthquake Trap": 1, "Flip Trap": 1}
+
+# Map ids whose bosses get their health from the boss_health option (FINAL_3's last boss keeps its own).
+BOSS_HEALTH_STAGES = ["OPENING"] + [s.key for s in STAGES] + [key for key, _, _, _ in FORTRESS]
+BOSS_HEALTH_RANGES = {1: (12, 24), 2: (36, 48), 3: (8, 48)}  # weak, strong, chaotic; vanilla is 32
+
+# Music ids (content/audio/music/music.lua) that music_shuffle swaps. Intros, jingles, the hub's layered track and
+# the multi-part final boss themes stay put.
+MUSIC_STAGE_THEMES = ["level_opening_stage", "level_optic", "level_patch", "level_blade", "level_cable",
+                      "level_shift", "level_wave", "level_break", "level_cipher", "level_tutorial",
+                      "level_final_1", "level_final_2", "level_final_3"]
+MUSIC_BOSS_THEMES = ["boss_intro", "boss_ray", "boss_patch", "boss_blade", "boss_cable", "boss_bit",
+                     "boss_medley", "boss_crash", "boss_hash", "boss_final_stage_1", "boss_final_stage_2"]
 
 
 def _build_items() -> List[ItemData]:

@@ -14,7 +14,7 @@ local UIX = {
   autoconnect = true,
   transport = "auto",
   -- shared with game.lua and burstlink.lua; "auto" follows the YAML
-  settings = { deathlink = "auto", burstlink = "auto", knockbacklink = "auto" },
+  settings = { deathlink = "auto", burstlink = "auto", knockbacklink = "auto", palette = "auto" },
 }
 
 -- Rows of the F9 panel, in focus order.
@@ -33,6 +33,9 @@ local ROWS = {
     values = { "auto", "off", "gravity_circuit", "silk_link" },
     names = { auto = "Use YAML", off = "Off", gravity_circuit = "Gravity Circuit", silk_link = "Silk Link" },
     help = "Shares your first 2 bursts with your team. Use YAML follows burst_link in your YAML." },
+  { kind = "option", key = "palette", label = "Palette", values = { "auto", "off", "kai", "everything" },
+    names = { auto = "Use YAML", off = "Off", kai = "Kai", everything = "Everything" },
+    help = "Recolours Kai, or Kai and enemies, from the seed. Use YAML follows palette_randomizer." },
   { kind = "option", key = "autoconnect", label = "Auto-connect", bool = true,
     help = "Connect when the game starts." },
 }
@@ -178,6 +181,9 @@ function UIX.loadConfig()
     or cfg.burstlink == "silk_link" then
     UIX.settings.burstlink = cfg.burstlink
   end
+  if cfg.palette == "auto" or cfg.palette == "off" or cfg.palette == "kai" or cfg.palette == "everything" then
+    UIX.settings.palette = cfg.palette
+  end
   if cfg.transport == "winhttp" or cfg.transport == "socket" or cfg.transport == "auto" then
     UIX.transport = cfg.transport
   end
@@ -185,7 +191,8 @@ end
 
 function UIX.saveConfig()
   local cfg = { autoconnect = UIX.autoconnect, transport = UIX.transport, deathlink = UIX.settings.deathlink,
-                burstlink = UIX.settings.burstlink, knockbacklink = UIX.settings.knockbacklink }
+                burstlink = UIX.settings.burstlink, knockbacklink = UIX.settings.knockbacklink,
+                palette = UIX.settings.palette }
   for _, f in ipairs(UIX.fields) do cfg[f.key] = f.value end
   love.filesystem.createDirectory("archipelago")
   love.filesystem.write(CONFIG, json.encode(cfg))

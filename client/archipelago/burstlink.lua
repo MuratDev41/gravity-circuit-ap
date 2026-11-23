@@ -173,6 +173,22 @@ function BL.update()
   if want ~= bursts then tracked = setHudBursts(want) else tracked = bursts end
 end
 
+-- Burst Drain Trap: empties the bar. With Burst Link on, only the bursts above the shared part go, so the drain
+-- isn't passed on to the team.
+function BL.drain()
+  if not (hud and hud.availableBursts) then return end
+  local keep = 0
+  if BL.enabled() and server ~= nil then
+    keep = math.min(sharedBursts(), hud.availableBursts)
+    personal = 0
+  end
+  local left = setHudBursts(keep)
+  if tracked then tracked = left end
+  if hud.power then
+    hud.power.current, hud.power.target = 0, 0
+  end
+end
+
 -- Line for the F9 panel, or nil when off.
 function BL.info()
   if not mode then

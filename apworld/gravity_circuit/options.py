@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from Options import Choice, DeathLink, DefaultOnToggle, PerGameCommonOptions, Range, StartInventoryPool, Toggle
+from Options import (Choice, DeathLink, DefaultOnToggle, OptionSet, PerGameCommonOptions, Range, StartInventoryPool,
+                     Toggle)
 
 
 class BossesRequired(Range):
@@ -62,11 +63,52 @@ class Shopsanity(DefaultOnToggle):
 
 
 class TrapChance(Range):
-    """Percent chance that each filler item is a trap instead (Damage Trap: lose 8 HP, never lethal;
-    Credit Leak Trap: lose 250 credits)."""
+    """Percent chance that each filler item is a trap instead. Which traps can appear is set by Enabled Traps."""
     display_name = "Trap Chance"
     range_start = 0
     range_end = 100
+    default = 0
+
+
+class EnabledTraps(OptionSet):
+    """Traps that can replace filler.
+    Damage Trap: lose 8 HP, never lethal. Credit Leak Trap: lose 250 credits.
+    Knockback Trap: knocked back like a hit, no damage. Burst Drain Trap: empties your bursts (with Burst Link,
+    only your own; the shared ones stay).
+    Palette Trap: everything changes colour for 20 seconds. Pixelate Trap: the screen pixelates for 15 seconds.
+    Earthquake Trap: the screen shakes for 8 seconds. Flip Trap: the screen turns upside down for 10 seconds."""
+    display_name = "Enabled Traps"
+    valid_keys = ["Damage Trap", "Credit Leak Trap", "Knockback Trap", "Burst Drain Trap", "Palette Trap",
+                  "Pixelate Trap", "Earthquake Trap", "Flip Trap"]
+    default = frozenset(valid_keys)
+
+
+class DataChipMarkers(DefaultOnToggle):
+    """With Random Data Chips, enemies whose data chip check is not done yet show an Archipelago icon above them."""
+    display_name = "Data Chip Markers"
+
+
+class BossHealth(Choice):
+    """Randomize boss health per stage (vanilla bosses have 32). The final boss keeps its own.
+    Weak: 12 to 24. Strong: 36 to 48. Chaotic: 8 to 48."""
+    display_name = "Boss Health"
+    option_vanilla = 0
+    option_weak = 1
+    option_strong = 2
+    option_chaotic = 3
+    default = 0
+
+
+class MusicShuffle(Choice):
+    """Shuffle the music.
+    Shuffled: stage themes are shuffled among stage themes, boss themes among boss themes.
+    Mixed: stage and boss themes are shuffled together.
+    Intros, jingles, the hub and the multi-part final boss themes stay."""
+    display_name = "Music Shuffle"
+    option_off = 0
+    alias_false = 0
+    option_shuffled = 1
+    option_mixed = 2
     default = 0
 
 
@@ -92,8 +134,21 @@ class BurstLink(Choice):
     Silk Link: shared with Silksong's Silk Link. One burst is 4 Silk of the 9 in the base spool."""
     display_name = "Burst Link"
     option_off = 0
+    alias_false = 0
     option_gravity_circuit = 1
     option_silk_link = 2
+    default = 0
+
+
+class PaletteRandomizer(Choice):
+    """Recolour sprites with hues picked from the seed, so each seed looks different. Shading stays the same.
+    Kai: only Kai.
+    Everything: Kai, enemies, bosses and NPCs, each with its own hue. Stages and the HUD keep their colours."""
+    display_name = "Palette Randomizer"
+    option_off = 0
+    alias_false = 0
+    option_kai = 1
+    option_everything = 2
     default = 0
 
 
@@ -109,7 +164,12 @@ class GravityCircuitOptions(PerGameCommonOptions):
     random_data_chips: RandomDataChips
     shopsanity: Shopsanity
     trap_chance: TrapChance
+    enabled_traps: EnabledTraps
     logic_difficulty: LogicDifficulty
     death_link: DeathLink
     knockback_link: KnockbackLink
     burst_link: BurstLink
+    palette_randomizer: PaletteRandomizer
+    data_chip_markers: DataChipMarkers
+    boss_health: BossHealth
+    music_shuffle: MusicShuffle
