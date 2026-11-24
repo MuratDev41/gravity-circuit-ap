@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+- Fixed a crash when Knockback Link or a Knockback Trap hit during a cutscene. Knockbacks no longer apply in
+  cutscenes, doors, warps or the walker; a Knockback Trap waits until it can.
+- Refills and traps wait until cutscenes end.
+- Fixed the Pixelate Trap doing nothing.
+
 ## 1.1.0
 - Palette randomizer (`palette_randomizer` in the YAML, or the F9 panel): `kai` recolours Kai, `everything` also
   enemies, bosses and NPCs, each with its own hue. Hues come from the seed and slot, so a seed always looks the

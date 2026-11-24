@@ -1,6 +1,6 @@
 # Gravity Circuit Archipelago: README and Install Guide
 
-Version 1.1.0 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
+Version 1.1.1 · for Gravity Circuit 1.2.2 (Steam; Windows, or Linux / Steam Deck through Proton) · Archipelago 0.6.4 or newer
 
 This zip contains:
 

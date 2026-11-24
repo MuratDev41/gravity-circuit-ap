@@ -96,19 +96,31 @@ function KB.onBounce(data)
   expires = now + LIFETIME
 end
 
+-- Whether Kai can be put in his damaged state. Leaving CUTSCENE while a scene runs crashes the game, and other
+-- scripted states (doors, warps, stage start and clear, the walker) don't expect it. Those replace takeDamage.
+function KB.canKnock(kai)
+  local G = KB.game
+  if not kai or kai.dead or (kai.health or 0) <= 0 or kai.CONTROLS_LOCKED then return false end
+  if not GAMESTATE or GAMESTATE.cutscene or GAMESTATE.dialogue or GAMESTATE.isGameOver or GAMESTATE.doorTransition
+    or GAMESTATE.levelTransitionInProgress or G.isPaused() then
+    return false
+  end
+  if Cinematics and Cinematics.isPlaying and Cinematics:isPlaying() then return false end
+  local s = kai.state
+  if not s or s.isInCutscene or s.isWarping or s.isEmergencyWarping or s.isGoingToEmergencyWarp or s.isInWalker then
+    return false
+  end
+  if kai.takeDamage ~= kai.class.takeDamage then return false end
+  return kai.checkVulnerable and kai:checkVulnerable() and not kai:isInDamagedState() or false
+end
+
 -- Knockback Trap: the same stagger, without sending it over Knockback Link.
 function KB.knock(kai, dir)
-  if not kai or kai:isInDamagedState() then return end
+  if not KB.canKnock(kai) then return end
   applyingRemote = true
   local ok, err = pcall(kai.gotoState, kai, "DAMAGED", dir, "weak", false)
   applyingRemote = false
   if not ok then log.error("knockback trap: " .. tostring(err)) end
-end
-
-local function canApply(kai)
-  local G = KB.game
-  return kai and not kai.dead and (kai.health or 0) > 0 and kai.checkVulnerable and kai:checkVulnerable()
-    and not kai:isInDamagedState() and not (GAMESTATE and GAMESTATE.isGameOver) and not G.isPaused()
 end
 
 function KB.update()
@@ -121,7 +133,7 @@ function KB.update()
   end
   if now - lastApplied < COOLDOWN then return end
   local kai = player()
-  if not canApply(kai) then return end
+  if not KB.canKnock(kai) then return end
   local dir = pending.x > 0 and 1 or (pending.x < 0 and -1 or nil)
   local source = pending.source
   pending, lastApplied = nil, now

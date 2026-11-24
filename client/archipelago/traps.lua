@@ -35,6 +35,11 @@ local function shader()
   return pixelShader
 end
 
+-- Whether a trap can be applied now; the Knockback Trap waits until Kai can be knocked.
+function T.ready(kind, kai)
+  return kind ~= "trapknock" or not T.knockback or T.knockback.canKnock(kai)
+end
+
 -- kind: the item kind from data.lua; item.gid: seconds for timed traps
 function T.apply(kind, item, kai)
   if kind == "trapknock" then
@@ -53,8 +58,9 @@ function T.apply(kind, item, kai)
 end
 
 local function pixelate(on)
-  local s = shader()
-  if not (s and GAMESTATE) then return end
+  if not GAMESTATE then return end
+  local s = on and shader() or pixelShader -- compiled on first use: there is no window yet when the mod loads
+  if not s then return end
   if on then
     if GAMESTATE.applyShaderOnGameScreen == nil then
       s:send("block", PIXEL_BLOCK)

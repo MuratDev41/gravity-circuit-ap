@@ -12,7 +12,7 @@ local markers = require("archipelago.markers")
 local bosshp = require("archipelago.bosshp")
 local music = require("archipelago.music")
 
-local AP = { VERSION = "1.1.0" }
+local AP = { VERSION = "1.1.1" }
 
 local RECONNECT_DELAY = 15
 
@@ -69,6 +69,7 @@ knockback.settings = ui.settings
 palette.settings = ui.settings
 traps.game, traps.knockback, traps.burstlink, traps.palette = game, knockback, burstlink, palette
 game.trapHandler = traps.apply
+game.trapReady = traps.ready
 markers.game = game
 bosshp.game = game
 client.handlers.knockback = function(data) knockback.onBounce(data) end

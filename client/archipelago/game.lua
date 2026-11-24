@@ -521,7 +521,9 @@ local function kaiReady()
   local stage = currentStage()
   if not stage or stage == "HUB" then return nil end
   if not (GameObject and GameObject.getPlayer) then return nil end
-  if GAMESTATE.isGameOver or GAMESTATE.dialogue or GAMESTATE.levelTransitionInProgress then return nil end
+  if GAMESTATE.isGameOver or GAMESTATE.cutscene or GAMESTATE.dialogue or GAMESTATE.levelTransitionInProgress then
+    return nil
+  end
   if Cinematics and Cinematics.isPlaying and Cinematics:isPlaying() then return nil end
   local pause = GAMESTATE._pauseScreenObject
   if pause and pause.active then return nil end
@@ -569,9 +571,11 @@ local function processInstant()
     if (received[kind] or 0) > (ap.instant[kind] or 0) then
       local kai = kaiReady()
       if not kai then return end
-      applyOneInstant(kind, kai)
-      instantCooldown = INSTANT_COOLDOWN_FRAMES
-      return
+      if not G.trapReady or G.trapReady(kind, kai) then
+        applyOneInstant(kind, kai)
+        instantCooldown = INSTANT_COOLDOWN_FRAMES
+        return
+      end
     end
   end
 end
